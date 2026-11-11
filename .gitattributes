@@ -1,0 +1,6 @@
+# SQL migrations, tests and rollback scripts keep LF line endings on every platform:
+# function bodies are compared byte for byte (rollback proof) and must not pick up CRLF.
+*.sql text eol=lf
+# Shell scripts run on Linux (CI, containers, deploy machines). A CRLF checkout on Windows breaks them
+# ("set: pipefail: invalid option name"), so they keep LF line endings on every platform.
+scripts/**/*.sh text eol=lf

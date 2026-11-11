@@ -1,0 +1,15 @@
+# Only runtime sources reach the image. Never secrets, never local state.
+.env
+.env.*
+**/.env
+**/.env.*
+node_modules
+.next
+.git
+tests
+supabase
+scripts
+eslint.config.mjs
+Dockerfile
+.dockerignore
+*.log
