@@ -3,7 +3,7 @@
  *
  * Under the Rev6 lock protocol every Kapso webhook transaction holds FOR SHARE on its account row, and overlapping webhooks can keep a plain
  * UPDATE of that row waiting for as long as the load lasts (measured: 10 s). The edit therefore goes through ONE database function,
- * public.update_whatsapp_account (supabase/proposed/20261104000976_update_whatsapp_account.sql), which runs the same UPDATE with a
+ * public.update_whatsapp_account (supabase/migrations/20261104000976_update_whatsapp_account.sql), which runs the same UPDATE with a
  * function-local `lock_timeout` of 5 s and answers with the stable key `whatsapp.account_busy` (SQLSTATE 55P03) when it gives up.
  *
  * Rules implemented here: the RPC is called exactly ONCE and a busy answer is returned to the caller (the admin screen shows a retryable

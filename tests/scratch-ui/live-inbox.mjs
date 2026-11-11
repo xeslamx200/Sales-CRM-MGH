@@ -35,18 +35,17 @@ const page = await ctx.newPage();
 await page.goto(`${APP}/login`);
 await page.fill('input[type="email"]', "agent_a1@test.local"); await page.fill('input[type="password"]', "test-pass-123"); await page.click('button[type="submit"]');
 await page.waitForURL((u) => !u.pathname.startsWith("/login"));
-let navigations = 0; page.on("framenavigated", () => navigations++);
 
 // 1. the conversation is open: a new message appears in it
 await page.goto(`${APP}/inbox?c=${cvOpen}`); await page.waitForLoadState("networkidle").catch(() => undefined);
 check("the live badge is shown", (await page.getByTestId("inbox-live").count()) === 1);
-const navBefore = navigations;
+await page.evaluate(() => { window.__liveMarker = 1; });   // lost on a full page reload, kept by a data refresh
 const t0 = Date.now();
 receive(cvOpen, "LIVE-IN-THREAD-" + stamp);
 let seen = false;
 while (Date.now() - t0 < 20000) { if ((await page.locator("body").innerText()).includes("LIVE-IN-THREAD-" + stamp)) { seen = true; break; } await page.waitForTimeout(300); }
 check("open conversation: the new message appears without refreshing", seen, seen ? `after ${((Date.now() - t0) / 1000).toFixed(1)} s` : "never appeared");
-check("it was not a full page reload", navigations - navBefore <= 1);
+check("it was not a full page reload", (await page.evaluate(() => window.__liveMarker)) === 1);
 
 // 2. only the list is open: a new conversation appears at the top
 await page.goto(`${APP}/inbox`); await page.waitForLoadState("networkidle").catch(() => undefined);

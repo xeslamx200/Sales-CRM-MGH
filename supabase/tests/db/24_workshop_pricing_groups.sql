@@ -1,5 +1,5 @@
 -- Workshop price matrix and groups (proposed migration 984). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..984 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/24_workshop_pricing_groups.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..984 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/24_workshop_pricing_groups.sql
 begin;
 select tests.logout();
 do $$

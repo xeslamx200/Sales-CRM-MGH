@@ -25,6 +25,17 @@ const RISKY = [
   [/\brename\s+(to|column)\b/i, "RENAME"],
 ];
 
+// Statements of migrations that are ALREADY APPLIED (Staging) and were reviewed before they were applied. Those files must stay byte-identical
+// to what was applied, so the note cannot be added in place; the review is recorded here instead (file + exact statement, not a line number).
+// Each one drops a function only to recreate it, in the same migration, with a changed return type: no data is touched.
+const REVIEWED = new Map([
+  ["20261104000983_payment_approvers_target_defaults.sql|drop function public.report_monthly_commission(uuid, date);", "recreated below with the new columns"],
+  ["20261104000986_booking_discount_approval.sql|drop function public.workshop_stats(uuid);", "recreated below with the discount columns"],
+  ["20261104000986_booking_discount_approval.sql|drop function public.workshop_bookings_list(uuid, uuid);", "recreated below with the discount columns"],
+  ["20261104000986_booking_discount_approval.sql|drop function app.booking_money(uuid[]);", "recreated below with the discount columns"],
+  ["20261104000987_target_currency.sql|drop function public.report_monthly_commission(uuid, date);", "recreated below in the target currency"],
+]);
+
 const filters = process.argv.slice(2);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).filter((f) => !filters.length || filters.some((x) => f.includes(x))).sort();
 const findings = [];
@@ -38,7 +49,8 @@ for (const file of files) {
     const code = line.replace(/--.*$/, "");
     for (const [re, label] of RISKY) {
       if (!re.test(code)) continue;
-      const justified = /--\s*destructive-ok:\s*\S/.test(rawLines[i - 1] ?? "") || /--\s*destructive-ok:\s*\S/.test(rawLines[i]);
+      const justified = /--\s*destructive-ok:\s*\S/.test(rawLines[i - 1] ?? "") || /--\s*destructive-ok:\s*\S/.test(rawLines[i])
+        || REVIEWED.has(`${file}|${rawLines[i].trim()}`);
       if (!justified) findings.push(`${file}:${i + 1}  ${label}  ${rawLines[i].trim().slice(0, 100)}`);
     }
   });

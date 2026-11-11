@@ -241,7 +241,7 @@ test("kapso v2 BSUID: with a (test-only) location the BSUID travels as its own i
 
 // ------------------------------------------------------------------------------------------------ retry payload keys vs the SQL
 test("kapso v2 retry payloads carry exactly the keys the Rev6 process_webhook_retries branches read", () => {
-  const sql = readFileSync(new URL("../../supabase/proposed/20261104000970_kapso_production.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../../supabase/migrations/20261104000970_kapso_production.sql", import.meta.url), "utf8");
   const branch = (kind: string) => {
     const i = sql.indexOf(`when '${kind}' then`);
     assert.ok(i > 0, kind);

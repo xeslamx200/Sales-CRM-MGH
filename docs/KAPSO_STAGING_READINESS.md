@@ -12,7 +12,7 @@ Details and commands: `docs/KAPSO_STAGING_DEPLOYMENT_RUNBOOK.md` (section number
 | Rollback files for all six, hashes recorded | Ready | [4.1] |
 | Static safety scan of the proposed files (`check-migrations` logic) | Ready | passed, 6 files; committed chain 27 files passed |
 | Order and dependencies understood (977 after 972; 978 after 970; reverse-order rollback) | Ready | [4.2] |
-| Proposed files promoted into `supabase/migrations/` | Requires user input | approved commit needed; `db push` ignores `supabase/proposed/` [4.3] |
+| Proposed files promoted into `supabase/migrations/` | Requires user input | approved commit needed; `db push` ignores `supabase/migrations/` [4.3] |
 | Working tree committed and pushed to a private remote | Requires user input | 35 uncommitted entries; no remote [1] |
 | Admin path to create a Kapso **production-environment** account | Blocked | UI creates Kapso accounts as sandbox only; reviewed SQL [8.9] or a UI change must be approved |
 | Scratch evidence (SQL suite, t1–t7, rollback catalog identity, TS e2e) | Ready | `KAPSO_REMEDIATION_REPORT.md` rev. 2–3 |

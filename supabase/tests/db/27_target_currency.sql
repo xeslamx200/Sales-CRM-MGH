@@ -1,5 +1,5 @@
 -- Target currency (proposed migration 987; needs 981 + 983). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..987 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/27_target_currency.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..987 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/27_target_currency.sql
 begin;
 select tests.logout();
 select public.upsert_fx_rates('{"QAR": 14.1, "USD": 50}'::jsonb, 'test-source');

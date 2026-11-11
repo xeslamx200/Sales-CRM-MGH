@@ -1,7 +1,7 @@
 # Concurrency tests for the Kapso account-row lock protocol
 
 **Disposable databases only.** These scripts insert accounts, contacts, conversations and messages and run randomized load.
-They need the proposed migrations (`supabase/proposed/`, see its README), the test fixtures and `scratch_helpers.sql`.
+They need the proposed migrations (`supabase/migrations/`, see its README), the test fixtures and `scratch_helpers.sql`.
 
 ## Run them from a separate client container
 
@@ -14,10 +14,10 @@ when the PostgreSQL backend they are connected to is visible in their own `/proc
 # server: any PostgreSQL 16/17 container, e.g. docker run -d --name x-scratch-pg ... postgres:17
 # client: a second container from the same image, e.g. docker run -d --name x-scratch-client --entrypoint sleep postgres:17 infinity
 # 1. build the scratch DB (inside the server container, from the repo):
-EXTRA_SQL="supabase/proposed/20261104000970_kapso_production.sql supabase/proposed/20261104000972_kapso_bsuid_contact_lock_recheck.sql \
-           supabase/proposed/20261104000975_kapso_sandbox_wamid_pair_check.sql supabase/proposed/20261104000976_update_whatsapp_account.sql \
-           supabase/proposed/20261104000977_kapso_contact_lock_order.sql supabase/proposed/20261104000978_kapso_event_lifecycle.sql \
-           supabase/proposed/20261104000979_kapso_echo_attribution_bsuid_send_guard.sql" \
+EXTRA_SQL="supabase/migrations/20261104000970_kapso_production.sql supabase/migrations/20261104000972_kapso_bsuid_contact_lock_recheck.sql \
+           supabase/migrations/20261104000975_kapso_sandbox_wamid_pair_check.sql supabase/migrations/20261104000976_update_whatsapp_account.sql \
+           supabase/migrations/20261104000977_kapso_contact_lock_order.sql supabase/migrations/20261104000978_kapso_event_lifecycle.sql \
+           supabase/migrations/20261104000979_kapso_echo_attribution_bsuid_send_guard.sql" \
   LOCAL_DB_NAME=my_scratch PGHOST=localhost bash scripts/db/test.sh          # also runs the 19 SQL test files
 psql -d my_scratch -f scripts/db/concurrency/scratch_helpers.sql
 # 2. run from the CLIENT container (copy scripts/db/concurrency there):

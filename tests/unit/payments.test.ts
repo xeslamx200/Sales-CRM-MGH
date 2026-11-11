@@ -71,7 +71,7 @@ test("review / search schemas", () => {
 });
 
 test("every payment.* rule the database raises has a user message in Arabic AND English", () => {
-  const sql = readFileSync(new URL("../../supabase/proposed/20261104000980_payments.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../../supabase/migrations/20261104000980_payments.sql", import.meta.url), "utf8");
   const codes = new Set([...sql.matchAll(/raise exception '(payment\.[a-z_]+)'/g)].map((m) => m[1]));
   assert.ok(codes.size >= 14, `found ${codes.size} codes`);
   // payment.invalid_rates is raised only for the service-role rate writer; never shown to a user

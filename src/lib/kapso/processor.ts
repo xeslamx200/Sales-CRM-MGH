@@ -18,7 +18,7 @@
  *
  * Protocol check: this path ("v1") serves Kapso SANDBOX accounts only (the
  * 0960 wrappers refuse anything else). When the database knows the account
- * model (Rev6 + supabase/proposed/20261104000978), an item of a production
+ * model (Rev6 + supabase/migrations/20261104000978), an item of a production
  * account is quarantined as `protocol.v2_required` with its original item,
  * instead of being queued as v1 retry work that could never succeed.
  */

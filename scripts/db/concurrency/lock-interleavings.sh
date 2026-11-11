@@ -3,7 +3,7 @@
 # KAPSO PRODUCTION LOCK-PROTOCOL SCRATCH TESTS  -  revision 6 draft
 #
 # STATUS (accurate as of the revision that produced this file)
-#   * Maintained copy of the Rev6 proposal's script, fixed after the Rev6 scratch run (see supabase/proposed/README.md): LF line endings,
+#   * Maintained copy of the Rev6 proposal's script, fixed after the Rev6 scratch run (see supabase/MIGRATIONS.md): LF line endings,
 #     the unsafe EXIT trap (which could kill a recycled PID, i.e. a PostgreSQL backend) removed, a PID-namespace guard added, and unique
 #     wamids per run. Its T-LOCK-1/2/3/6 and T-ID results on the Rev6 scratch database are in the scratch-run RESULTS.
 #

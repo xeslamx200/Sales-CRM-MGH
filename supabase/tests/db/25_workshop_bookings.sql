@@ -1,5 +1,5 @@
 -- Workshop bookings, discounts and booking payments (proposed migration 985; needs 984). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..985 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/25_workshop_bookings.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..985 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/25_workshop_bookings.sql
 begin;
 select tests.logout();
 

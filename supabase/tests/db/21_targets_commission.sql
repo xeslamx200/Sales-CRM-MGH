@@ -1,5 +1,5 @@
 -- Monthly targets and tiered commission (proposed migrations 980 + 981). Lives outside supabase/tests/db: run only on databases that have both.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..981 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/21_targets_commission.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..981 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/21_targets_commission.sql
 begin;
 select tests.logout();
 

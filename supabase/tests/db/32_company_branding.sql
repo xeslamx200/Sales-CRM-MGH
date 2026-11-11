@@ -1,5 +1,5 @@
 -- Company branding (proposed migration 992). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..992 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/32_company_branding.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..992 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/32_company_branding.sql
 begin;
 select tests.logout();
 select tests.eq((select count(*) from public.company_branding), 0::bigint, 'a fresh database has no branding (applying the migration changes nothing)');

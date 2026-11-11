@@ -4,7 +4,7 @@
  * through psql inside a client container instead of PostgREST.
  *
  *   KAPSO_SCRATCH_DB=<client-container>:<server-host>:<database>   e.g.  kapso-rev6-scratch-client:172.17.0.2:kapso_p6_c_scratch
- *   (the database name must contain "scratch"; it needs supabase/proposed 970, 972, 975, 976, 977, 978, 979 and the test fixtures)
+ *   (the database name must contain "scratch"; it needs supabase/migrations 970, 972, 975, 976, 977, 978, 979 and the test fixtures)
  *   npm run test:scratch
  *
  * SKIPPED (not passed) when KAPSO_SCRATCH_DB is not set. Never point this at a real database: it inserts accounts, contacts and messages.

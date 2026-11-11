@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # DISPOSABLE DATABASES ONLY, from a separate client container (see README.md). Patch 979
-# (supabase/proposed/20261104000979_kapso_echo_attribution_bsuid_send_guard.sql) and the BSUID database behaviour:
+# (supabase/migrations/20261104000979_kapso_echo_attribution_bsuid_send_guard.sql) and the BSUID database behaviour:
 #   unknown   echoes of unknown customers (each origin separately, phone / BSUID / both, cloud_api retry) create NOTHING
 #   known     echoes of known customers attach to the existing conversation: no contact / conversation / lead / identity change
 #   bsuidconv echoes to a BSUID-only conversation (no promotion, no phone invented)

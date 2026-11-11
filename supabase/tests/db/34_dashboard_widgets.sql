@@ -1,5 +1,5 @@
 -- Dashboard widget visibility (proposed migration 996). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 970..996 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/33_dashboard_widgets.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 970..996 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/34_dashboard_widgets.sql
 begin;
 select tests.logout();
 select tests.eq((select count(*) from public.company_ui_settings where cardinality(hidden_widgets) > 0), 0::bigint, 'a fresh database hides nothing (applying the migration changes nothing)');

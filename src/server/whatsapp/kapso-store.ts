@@ -55,7 +55,7 @@ export function createKapsoStore(): KapsoStore {
       return Boolean(data);
     },
     async accountClass(phoneNumberId) {
-      // kapso_account_protocol exists only with supabase/proposed/20261104000978 (not in the generated types); a database without it
+      // kapso_account_protocol exists only with supabase/migrations/20261104000978 (not in the generated types); a database without it
       // answers PGRST202, which handleKapsoPost reads as "pre-Rev6 schema: every Kapso account is a sandbox".
       const { data, error } = await (db as unknown as RpcClient).rpc("kapso_account_protocol", { p_phone_number_id: phoneNumberId });
       if (error) throw error;
@@ -66,7 +66,7 @@ export function createKapsoStore(): KapsoStore {
 
 /**
  * Protocol v2 store (Rev6 account model), same service-role client. The v2 RPCs are not in the generated types yet (they exist only after
- * supabase/proposed/20261104000970_kapso_production.sql is applied and `npm run db:types` is re-run), hence the narrow RpcClient cast.
+ * supabase/migrations/20261104000970_kapso_production.sql is applied and `npm run db:types` is re-run), hence the narrow RpcClient cast.
  */
 export function createKapsoStoreV2Server(): KapsoStoreV2 {
   return createKapsoStoreV2(createAdminClient() as unknown as RpcClient);

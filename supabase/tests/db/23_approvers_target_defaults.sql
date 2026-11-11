@@ -1,5 +1,5 @@
 -- Payment approvers, default targets and exact-tier commission (proposed migration 983). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..983 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/23_approvers_target_defaults.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..983 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/23_approvers_target_defaults.sql
 begin;
 select tests.logout();
 

@@ -1,5 +1,5 @@
 -- Discount approval workflow (proposed migration 986; needs 984 + 985). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..986 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/26_booking_discount_approval.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..986 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/26_booking_discount_approval.sql
 begin;
 select tests.logout();
 
@@ -229,8 +229,8 @@ select tests.login('mgr_a');
 select tests.eq((select count(*) from public.customer_payment_rows(tests.ref('alpha'), tests.ref('dw'), null, null, 'paid')), 1::bigint, 'filter by status: one paid booking (the approved free seat)');
 select tests.eq((select count(*) from public.customer_payment_rows(tests.ref('alpha'), null, null, null, null, 'EGP')), 1::bigint, 'filter by currency: EGP');
 select tests.eq((select count(*) from public.customer_payment_rows(tests.ref('alpha'), null, null, tests.ref('c1'))), 1::bigint, 'filter by customer');
-select tests.eq((select count(*) from public.customer_payment_rows(tests.ref('alpha'), null, null, null, null, null, current_date + 1, current_date + 5)), 0::bigint, 'filter by date: nothing booked in the future');
-select tests.eq((select count(*) from public.customer_payment_rows(tests.ref('alpha'), null, null, null, null, null, current_date, current_date)) > 10, true, 'filter by date: today''s bookings');
+select tests.eq((select (select count(*) from public.customer_payment_rows(tests.ref('alpha'), null, null, null, null, null, t.d + 1, t.d + 5)) from (select (now() at time zone c.timezone)::date as d from public.companies c where c.id = tests.ref('alpha')) t), 0::bigint, 'filter by date: nothing booked in the future (company calendar day)');
+select tests.eq((select (select count(*) from public.customer_payment_rows(tests.ref('alpha'), null, null, null, null, null, t.d, t.d)) from (select (now() at time zone c.timezone)::date as d from public.companies c where c.id = tests.ref('alpha')) t) > 10, true, 'filter by date: today''s bookings (company calendar day, not the UTC date)');
 select tests.throws($q$select * from public.customer_payment_rows(tests.ref('alpha'), null, null, null, 'bogus')$q$, 'filter.invalid', 'an unknown status filter is refused');
 select tests.eq((select pending || '/' || rejected || '/' || remaining from public.customer_payment_rows(tests.ref('alpha'), null, null, tests.ref('c11'))), '950.00/0.00/1000.00', 'money columns: pending 950, rejected 0, remaining 1000');
 

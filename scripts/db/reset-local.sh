@@ -13,8 +13,8 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/shim/00_supabase_shim.sql
 for f in supabase/migrations/*.sql; do
   psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f" || { echo "FAILED: $f" >&2; exit 1; }
 done
-# Optional, for SCRATCH testing only: reviewed-but-not-approved migrations (supabase/proposed/*) applied on top of the committed ones, e.g.
-#   EXTRA_SQL="supabase/proposed/20261104000970_kapso_production.sql" bash scripts/db/reset-local.sh
+# Optional, for SCRATCH testing only: reviewed-but-not-approved migrations (supabase/migrations/*) applied on top of the committed ones, e.g.
+#   EXTRA_SQL="supabase/migrations/20261104000970_kapso_production.sql" bash scripts/db/reset-local.sh
 for f in ${EXTRA_SQL:-}; do
   psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f" || { echo "FAILED (extra): $f" >&2; exit 1; }
 done

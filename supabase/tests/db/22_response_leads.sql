@@ -1,5 +1,5 @@
 -- Leads per day and response speed (proposed migration 982). Lives outside supabase/tests/db: run only on databases that have 970..982.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..982 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/22_response_leads.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..982 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/22_response_leads.sql
 -- Alpha is on Asia/Qatar (UTC+3, no DST). Days below are Doha days.
 begin;
 select tests.logout();

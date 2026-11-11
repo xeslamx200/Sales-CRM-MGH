@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # DISPOSABLE DATABASES ONLY, from a separate client container (see README.md). Webhook event lifecycle of patch 978
-# (supabase/proposed/20261104000978_kapso_event_lifecycle.sql): claim / finish / held records, the retry job (quarantine exclusion,
+# (supabase/migrations/20261104000978_kapso_event_lifecycle.sql): claim / finish / held records, the retry job (quarantine exclusion,
 # stale-pending sweep, attempt bound, permanent failures, concurrent runs), crash windows, protocol classification, and that the retry
 # job cannot send anything. Deterministic: every interleaving is driven by pg_blocking_pids / session output, never by sleeps alone.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"

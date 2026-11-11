@@ -7,8 +7,8 @@ import { execFileSync } from "node:child_process";
 import os from "node:os";
 
 const APP = process.env.APP ?? "http://localhost:3299";
-const SHOTS = process.env.SHOTS ?? path.resolve("mgh-prep/analysis/screenshots");
-const RESULTS = process.env.RESULTS ?? path.resolve("mgh-prep/analysis/phase6_frontend_results.json");
+const SHOTS = process.env.SHOTS ?? path.resolve("tests/scratch-ui/out/screenshots");
+const RESULTS = process.env.RESULTS ?? path.resolve("tests/scratch-ui/out/frontend_results.json");
 const PASSWORD = "test-pass-123";
 fs.mkdirSync(SHOTS, { recursive: true });
 

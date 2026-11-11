@@ -1,6 +1,6 @@
 /**
- * Kapso webhook processing, protocol "v2" (account model of the Rev6 proposal: supabase/proposed/20261104000970_kapso_production.sql,
- * lifecycle functions of supabase/proposed/20261104000978_kapso_event_lifecycle.sql). Selected by KAPSO_PROTOCOL=v2; the default
+ * Kapso webhook processing, protocol "v2" (account model of the Rev6 proposal: supabase/migrations/20261104000970_kapso_production.sql,
+ * lifecycle functions of supabase/migrations/20261104000978_kapso_event_lifecycle.sql). Selected by KAPSO_PROTOCOL=v2; the default
  * protocol ("v1", src/lib/kapso/processor.ts) keeps serving the Phase 1 sandbox.
  *
  * What v2 adds on top of v1, and nothing more:

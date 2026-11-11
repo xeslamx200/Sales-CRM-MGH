@@ -39,7 +39,7 @@ export const serverSchemas = {
   kapso: z.object({
     KAPSO_WEBHOOK_SECRET: secret,
     /**
-     * Webhook protocol: "v1" (default, the Phase 1 sandbox path) or "v2" (Rev6 account model; needs supabase/proposed/970, 972, 975, 977
+     * Webhook protocol: "v1" (default, the Phase 1 sandbox path) or "v2" (Rev6 account model; needs supabase/migrations/970, 972, 975, 977
      * and 978 applied; a real Coexistence number also needs 979). Any other value fails closed (the webhook answers 503 "not configured"). The default never serves a production
      * account: v1 quarantines its items as `protocol.v2_required` (src/lib/kapso/protocol.ts), so production needs an explicit "v2".
      */

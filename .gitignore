@@ -14,3 +14,6 @@ test-results/
 next-env.d.ts
 *.tsbuildinfo
 
+
+# output of the local browser tests (screenshots, results)
+tests/scratch-ui/out/

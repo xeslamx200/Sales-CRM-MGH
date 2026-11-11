@@ -1,5 +1,5 @@
 -- Company display settings (proposed migration 991). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..991 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/31_company_ui_settings.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..991 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/31_company_ui_settings.sql
 begin;
 select tests.logout();
 select tests.eq((select count(*) from public.company_ui_settings), 0::bigint, 'a fresh database has no settings (applying the migration changes nothing)');

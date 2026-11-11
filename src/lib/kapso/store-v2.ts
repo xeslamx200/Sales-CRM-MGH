@@ -4,8 +4,8 @@
  *
  * Every RPC argument is always sent, `null` when absent (PostgREST matches functions by argument NAMES; an omitted key means "function not
  * found"). The caller never supplies a company or account id: only the phone_number_id, which the database maps to the account.
- * The functions used exist only after the Rev6 migration (supabase/proposed/20261104000970_kapso_production.sql) and the lifecycle
- * migration (supabase/proposed/20261104000978_kapso_event_lifecycle.sql).
+ * The functions used exist only after the Rev6 migration (supabase/migrations/20261104000970_kapso_production.sql) and the lifecycle
+ * migration (supabase/migrations/20261104000978_kapso_event_lifecycle.sql).
  */
 import type { ClaimResult } from "../whatsapp/processor.ts";
 import type { HeldRecord, KapsoAccountClass, KapsoInboundV2, KapsoQuarantineReader, KapsoStatusV2, KapsoStoreV2 } from "./v2.ts";

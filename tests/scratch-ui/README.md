@@ -9,5 +9,5 @@ and disables Kapso sending for its own process only).
 2. Start the gateway: `JWT_SECRET=<same as PGRST_JWT_SECRET> PGRST_URL=http://127.0.0.1:3300 PORT=3301 node tests/scratch-ui/gateway.mjs`
 3. Start the app with `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:3301`, the anon / service keys printed by `GET http://127.0.0.1:3301/anon-key` (local, scratch-signed),
    `KAPSO_WEBHOOK_SECRET=`, `KAPSO_SEND_ALLOWLIST=` and `next dev -p 3299`.
-4. `APP=http://localhost:3299 node tests/scratch-ui/e2e.mjs` - 34 steps; writes `mgh-prep/analysis/phase6_frontend_results.json` and screenshots (`phase6-*.png`).
+4. `APP=http://localhost:3299 node tests/scratch-ui/e2e.mjs` - 34 steps; writes `tests/scratch-ui/out/frontend_results.json` and screenshots (git-ignored).
    Run `reset.sh` again before every run (the suite creates bookings and uses the unique-customer rule).

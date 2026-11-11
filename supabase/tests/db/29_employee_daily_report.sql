@@ -1,5 +1,5 @@
 -- Presence and the per-employee daily report (proposed migration 989; needs 984-988). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..989 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/29_employee_daily_report.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..989 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/29_employee_daily_report.sql
 -- Day under test: Sunday 2026-07-05, company time zone Africa/Cairo (UTC+3 in July). Shift of agent_a1: 10:00-19:00 Sun-Thu.
 begin;
 select tests.logout();

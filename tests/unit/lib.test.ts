@@ -109,6 +109,12 @@ test("every user-facing error key raised by the database has a localized message
     "conversation.unread_can_only_be_cleared", "conversation.company_change_forbidden", "message.immutable_field",
     "message.request_id_conflict", "whatsapp.invalid_payload", "whatsapp.unknown_phone_number_id", "webhook.invalid_status",
     "contact.merge_same", "contact.not_found", "review.not_found", "rate_limit.invalid_arguments", "import.invalid_batch", "job.unknown",
+    // Kapso / webhook processing (970-979): raised while a delivery is processed by the service role, stored as the event's error code, never shown to a person
+    "kapso.account_not_production", "kapso.contact_moved", "kapso.conversation_not_found", "kapso.echo_identity_conflict", "kapso.echo_unattributed",
+    "kapso.identity_conflict", "kapso.origin_not_ingestable", "webhook.claim_conflict", "webhook.event_not_found", "webhook.invalid_event_key",
+    "webhook.invalid_payload_kind", "webhook.invalid_reason", "webhook.payload_too_large", "whatsapp.isolation_unsupported",
+    // workshop price history is written by the price setter only; no screen edits it
+    "price.history_immutable",
   ]);
   const missing = [...keys].filter((k) => !internal.has(k) && !hasMessage(k)).sort();
   assert.deepEqual(missing, [], `add messages to src/lib/errors.ts for: ${missing.join(", ")}`);

@@ -1,5 +1,5 @@
 -- Workshop payments (proposed migration 980). Lives outside supabase/tests/db so scripts/db/test.sh does not run it on databases without 980.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..980 + supabase/tests/db/_helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/20_payments.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..980 + supabase/tests/db/_helpers.sql + _fixtures.sql> -f supabase/tests/db/20_payments.sql
 -- Money rules: rate read by the database and frozen, EGP total computed by the database, manager confirmation, company isolation,
 -- immutability, proof images through the attachments system.
 begin;

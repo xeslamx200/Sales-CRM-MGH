@@ -1,6 +1,6 @@
 # Kapso webhook: event lifecycle, invalid events, protocol selection
 
-Status: **implemented in code, tested on disposable scratch PostgreSQL only.** The SQL it relies on is in `supabase/proposed/` and is
+Status: **implemented in code, tested on disposable scratch PostgreSQL only.** The SQL it relies on is in `supabase/migrations/` and is
 **not applied** anywhere. Nothing here sends WhatsApp messages; outbound stays disabled (`outbound_enabled = false`).
 
 ## 1. Lifecycle
@@ -23,7 +23,7 @@ retry job (pg_cron every 5 min, or GET /api/cron/whatsapp-retry): failed rows + 
 
 Code: `src/lib/kapso/webhook-http.ts` (HTTP), `src/lib/kapso/v2.ts` / `processor.ts` (protocols), `src/lib/kapso/quarantine.ts`
 (records), `src/lib/kapso/protocol.ts` (compatibility), `src/lib/cron-retry.ts` + `src/lib/cron-auth.ts` (cron).
-SQL: `supabase/proposed/20261104000978_kapso_event_lifecycle.sql`.
+SQL: `supabase/migrations/20261104000978_kapso_event_lifecycle.sql`.
 
 ## 2. Durable states of an item
 
@@ -126,7 +126,7 @@ SQL functions with `search_path ''`.
 
 ## 9. Migrations and rollback (review only, nothing applied)
 
-Order: 970 -> 972 -> 975 -> 976 -> 977 -> 978 (see `supabase/proposed/README.md`). Roll back in reverse order. 978's rollback drops
+Order: 970 -> 972 -> 975 -> 976 -> 977 -> 978 (see `supabase/MIGRATIONS.md`). Roll back in reverse order. 978's rollback drops
 its five functions and restores the 970 body of `process_webhook_retries`; no data is deleted and rows written through 978 remain
 valid for 970. After rolling back 978, set `KAPSO_PROTOCOL=v1` (v2 would answer 503).
 

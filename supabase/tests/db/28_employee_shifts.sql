@@ -1,5 +1,5 @@
 -- Employee shifts and the shift activity report (proposed migration 988). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..988 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/28_employee_shifts.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..988 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/28_employee_shifts.sql
 -- The company is switched to Africa/Cairo (the MGH zone, with daylight saving) for the whole test. ISO weekdays: 1 = Monday ... 7 = Sunday; Sun-Thu = {7,1,2,3,4}.
 begin;
 select tests.logout();

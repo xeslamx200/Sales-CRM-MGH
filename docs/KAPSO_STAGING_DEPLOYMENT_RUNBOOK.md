@@ -16,7 +16,7 @@ yet**. It is blocked on:
 1. **No staging target exists / is identified** (Supabase project ref, Vercel project, HTTPS hostname, region, plan) — user input.
 2. **Repository state:** all Kapso work is uncommitted (35 working-tree entries), there is no remote, and Vercel deploys from Git. A commit and
    push need explicit approval (`docs/DEPLOYMENT.md` §2).
-3. **Migrations are not in `supabase/migrations/`.** 970–978 live in `supabase/proposed/`; `supabase db push` applies only
+3. **Migrations are not in `supabase/migrations/`.** 970–978 live in `supabase/migrations/`; `supabase db push` applies only
    `supabase/migrations/`. They must be promoted (copied with their names) in an approved commit — see §4.3.
 4. **No admin path creates a Kapso PRODUCTION account.** `saveWhatsappAccount` inserts every Kapso account with `is_sandbox = true`, which the
    970 derive trigger turns into `environment = 'sandbox'` (and the sandbox guard then requires a sandbox company). A production-environment
@@ -82,7 +82,7 @@ first on an empty project. Then the proposed chain, **in this order**:
 | 5 | `20261104000977_kapso_contact_lock_order.sql` | `b26ce738d4f7dae9` | 970 **and** 972 | replaces the same two functions as 972 (sub-transaction lock release; missing conversation raises) — **revised version included** |
 | 6 | `20261104000978_kapso_event_lifecycle.sql` | `89cb2e4dadaf925b` | 970 | + 5 lifecycle functions; replaced `process_webhook_retries` (stale-pending sweep; v2 kinds finish through `finish_kapso_event`) — **revision 2 + 3 included** |
 
-Rollbacks (`supabase/proposed/rollbacks/`): `…970….rollback.sql` `c076f3b9824c8406`, `…972…` `200ec2973882b0ae`, `…975…` `086865c92e7684ff`,
+Rollbacks (`supabase/rollbacks/`): `…970….rollback.sql` `c076f3b9824c8406`, `…972…` `200ec2973882b0ae`, `…975…` `086865c92e7684ff`,
 `…976…` `0d5a3668fcbcf84f`, `…977…` `1b903de990fad26d`, `…978…` `14843b7ce3761dc8`. Verify these hashes before use (§5 P3).
 
 ### 4.2 Findings from the file inspection (not assumptions from the scratch tests)
@@ -95,7 +95,7 @@ Rollbacks (`supabase/proposed/rollbacks/`): `…970….rollback.sql` `c076f3b982
   connection_mode='sandbox' WHERE provider='kapso'` (justified `-- destructive-ok`, new columns only), `ALTER COLUMN environment DROP DEFAULT`,
   `DROP CONSTRAINT whatsapp_accounts_sandbox_chk` (replaced by stricter ones), `ALTER COLUMN customer_wa_id DROP NOT NULL`. New `CHECK`
   constraints can **fail on existing data** (e.g. `wa_accounts_pnid_shape_chk` is added `NOT VALID` then validated). On an empty staging
-  project nothing can violate them. `npm run check:migrations`-equivalent scan of `supabase/proposed`: **passed (6 files)**.
+  project nothing can violate them. `npm run check:migrations`-equivalent scan of `supabase/mioposed`: **passed (6 files)**.
 * **Destructive operations:** none in 972–978 (function/`create or replace` only). No table, column or index is dropped by any forward file.
 * **Rollback data-loss implications:**
   * 970 rollback drops `contact_identities`, `conversations.customer_bsuid`, `messages.provider_origin` and the 6 account columns, **but first
@@ -113,8 +113,8 @@ Rollbacks (`supabase/proposed/rollbacks/`): `…970….rollback.sql` `c076f3b982
 
 ### 4.3 How the proposed files get applied (decision needed — I5)
 
-**Recommended:** in one approved commit, copy the six forward files **unchanged and with the same names** from `supabase/proposed/` to
-`supabase/migrations/` (rollbacks stay in `supabase/proposed/rollbacks/`). Then `supabase db push` applies them in order and records them in
+**Recommended:** in one approved commit, copy the six forward files **unchanged and with the same names** from `supabase/migrations/` to
+`supabase/migrations/` (rollbacks stay in `supabase/rollbacks/`). Then `supabase db push` applies them in order and records them in
 `supabase_migrations.schema_migrations`, so history and files never drift.
 Side effects to accept knowingly: CI and any `supabase start` / `db reset` **on a developer machine** will apply them to that machine's local
 database too (the local development stack must not be reset without the owner's approval); `supabase/tests/db/19_kapso_sandbox.sql` already
@@ -143,7 +143,7 @@ handles the Rev6 schema (711 checks passed on scratch).
 npx supabase login
 npx supabase link --project-ref "$STAGING_REF"          # P1: must be the staging ref, never another
 cat supabase/.temp/project-ref                           # P1
-sha256sum supabase/proposed/2026110400097*.sql supabase/proposed/rollbacks/2026110400097*.sql   # P3
+sha256sum supabase/migrations/2026110400097*.sql supabase/rollbacks/2026110400097*.sql   # P3
 npm run check:migrations                                 # P4
 npx supabase migration list                              # P5
 npx supabase db push --dry-run                           # P6 — show the output to the owner and wait for approval
@@ -410,9 +410,9 @@ Stop at any step that deviates; MGH stays receive-only until a separate outbound
 
 ```bash
 # NOT EXECUTED — Gate I5: promote the proposed forward files (repository change, then commit/push with approval)
-cp supabase/proposed/20261104000970_kapso_production.sql supabase/proposed/20261104000972_kapso_bsuid_contact_lock_recheck.sql \
-   supabase/proposed/20261104000975_kapso_sandbox_wamid_pair_check.sql supabase/proposed/20261104000976_update_whatsapp_account.sql \
-   supabase/proposed/20261104000977_kapso_contact_lock_order.sql supabase/proposed/20261104000978_kapso_event_lifecycle.sql supabase/migrations/
+cp supabase/migrations/20261104000970_kapso_production.sql supabase/migrations/20261104000972_kapso_bsuid_contact_lock_recheck.sql \
+   supabase/migrations/20261104000975_kapso_sandbox_wamid_pair_check.sql supabase/migrations/20261104000976_update_whatsapp_account.sql \
+   supabase/migrations/20261104000977_kapso_contact_lock_order.sql supabase/migrations/20261104000978_kapso_event_lifecycle.sql supabase/migrations/
 npm run check:migrations
 # NOT EXECUTED — Gates A–D (staging only)
 npx supabase link --project-ref "$STAGING_REF"
@@ -428,7 +428,7 @@ curl -sS "https://$STAGING_HOST/api/health"
 curl -sS -o /dev/null -w '%{http_code}\n' -X POST "https://$STAGING_HOST/api/webhooks/kapso" -H 'Content-Type: application/json' --data '{}'   # expect 401
 curl -sS -o /dev/null -w '%{http_code}\n' "https://$STAGING_HOST/api/cron/whatsapp-retry"                                                    # expect 401
 # NOT EXECUTED — rollback (reverse order, one file at a time, staging only, after a fresh dump and approval)
-psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -1 -f supabase/proposed/rollbacks/20261104000978_kapso_event_lifecycle.rollback.sql
+psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -1 -f supabase/rollbacks/20261104000978_kapso_event_lifecycle.rollback.sql
 # ... 977, 976, 975, 972, 970 in that order; 970 refuses if v2 data exists
 npx supabase unlink
 ```

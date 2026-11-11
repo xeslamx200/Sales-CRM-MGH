@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # DISPOSABLE DATABASES ONLY, from a separate client container (see README.md). Deterministic regression tests for the stale-contact defect of
-# app.kapso_resolve_conversation (fixed by supabase/proposed/20261104000972_kapso_bsuid_contact_lock_recheck.sql):
+# app.kapso_resolve_conversation (fixed by supabase/migrations/20261104000972_kapso_bsuid_contact_lock_recheck.sql):
 #   fix1 : attach a BSUID to the conversation of a contact that is being merged
 #   fix2 : promote a BSUID-only conversation (phone becomes known) while its contact is being merged
 # Choreography: a transaction runs merge_contacts and stays open (holding both contact locks and the uncommitted move of the conversation);

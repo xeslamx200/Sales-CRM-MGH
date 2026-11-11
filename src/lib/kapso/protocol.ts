@@ -1,6 +1,6 @@
 /**
  * Protocol / account compatibility (fail closed). The webhook protocol is a deployment setting (KAPSO_PROTOCOL); the account model is in
- * the database (kapso_account_protocol, supabase/proposed/20261104000978). Neither is trusted alone:
+ * the database (kapso_account_protocol, supabase/migrations/20261104000978). Neither is trusted alone:
  *
  *                      sandbox account   production account          misconfigured account   unknown / inactive   pre-Rev6 schema
  *   v1 (default)       process           QUARANTINE v2_required      QUARANTINE              process (DB refuses)  process (all sandbox)

@@ -65,7 +65,7 @@ test("commission months: only YYYY-MM is accepted; shifting crosses years", () =
 test("every commission.* / target.* rule the 981 migration raises has a user message in Arabic AND English", async () => {
   const { readFileSync } = await import("node:fs");
   const { hasMessage, userMessage } = await import("../../src/lib/errors.ts");
-  const sql = readFileSync(new URL("../../supabase/proposed/20261104000981_employee_targets_commission.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../../supabase/migrations/20261104000981_employee_targets_commission.sql", import.meta.url), "utf8");
   const codes = new Set([...sql.matchAll(/raise exception '((?:commission|target)\.[a-z_]+)'/g)].map((m) => m[1]));
   assert.deepEqual([...codes].sort(), ["commission.invalid_tiers", "target.invalid_user", "target.invalid_value"]);
   for (const c of codes) {
@@ -87,7 +87,7 @@ test("MGH tiers: boundary attainments (0 / 3 / 4 / 5 %) and the commission on th
   const mgh: Tier[] = [{ min: 0.8, rate: 0.03 }, { min: 0.9, rate: 0.04 }, { min: 1, rate: 0.05 }];
   const cases: [number, number | null][] = [[0.79, null], [0.8, 0.03], [0.8999, 0.03], [0.9, 0.04], [0.9999, 0.04], [1, 0.05], [1.2, 0.05]];
   for (const [att, rate] of cases) assert.equal(tierFor(mgh, att)?.rate ?? null, rate, `attainment ${att}`);
-  // collected amounts against a 10 000 target, as in supabase/tests/db_proposed/23_approvers_target_defaults.sql
+  // collected amounts against a 10 000 target, as in supabase/tests/db/23_approvers_target_defaults.sql
   assert.equal(commissionOf(8000, 0.03), 240);
   assert.equal(commissionOf(8999, 0.03), 269.97);
   assert.equal(commissionOf(9000, 0.04), 360);

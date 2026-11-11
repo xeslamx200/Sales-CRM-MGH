@@ -1,5 +1,5 @@
 -- Dashboard figures from workshop bookings and payments (proposed migration 990; needs 984-989). Lives outside supabase/tests/db.
--- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..990 + _helpers.sql + _fixtures.sql> -f supabase/tests/db_proposed/30_workshop_dashboard.sql
+-- Run: psql -v ON_ERROR_STOP=1 -d <scratch db with 27 migrations + 970..990 + _helpers.sql + _fixtures.sql> -f supabase/tests/db/30_workshop_dashboard.sql
 -- Period under test: July 2026 (company time zone Asia/Qatar). Money is per currency, never added across currencies.
 begin;
 select tests.logout();
