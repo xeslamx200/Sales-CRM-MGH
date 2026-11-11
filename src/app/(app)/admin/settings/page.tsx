@@ -20,7 +20,7 @@ export default async function CompanySettingsPage() {
   const c = t.companySettings;
   const supabase = await createClient();
 
-  const [members, policy, approvers, defaults, cur, rates, exclusions, ui, brand, allMembers, teamRows] = await Promise.all([
+  const [members, policy, approvers, defaults, cur, rates, exclusions, ui, brand, allMembers, teamRows, phoneRows] = await Promise.all([
     listMembers(supabase, [company.id], { activeOnly: true }),
     supabase.from("payment_approval_policy").select("company_id").eq("company_id", company.id).maybeSingle(),
     supabase.from("payment_approvers").select("user_id").eq("company_id", company.id),
@@ -32,10 +32,10 @@ export default async function CompanySettingsPage() {
     getBranding(supabase, company.id),
     listMembers(supabase, [company.id]),
     supabase.from("teams").select("id, name").eq("company_id", company.id).order("name"),
+    supabase.from("company_memberships").select("user_id, profile:profiles!company_memberships_user_id_fkey(phone)").eq("company_id", company.id),
   ]);
   for (const r of [policy, approvers, defaults, exclusions]) if (r.error) throw r.error;
-  const { data: phones } = await supabase.from("profiles").select("id, phone").in("id", allMembers.map((m) => m.userId));
-  const phoneOf = new Map((phones ?? []).map((x) => [x.id, x.phone]));
+  const phoneOf = new Map((phoneRows.data ?? []).map((x) => [x.user_id, x.profile?.phone ?? null]));
   const accounts: PersonAccount[] = allMembers.map((m) => ({
     userId: m.userId, name: m.fullName, email: m.email, phone: phoneOf.get(m.userId) ?? null, role: m.role, active: m.isActive && m.profileActive,
   }));

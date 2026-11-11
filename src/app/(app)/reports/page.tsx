@@ -40,6 +40,13 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
   const manager = company ? isManagerOf(viewer, company.id) : viewer.isSuperAdmin;
   const n = (v: number) => formatNumber(v, locale);
 
+  // The overview figures do not depend on the team / member lists: start them first so both arrive in the same round trip.
+  const overviewKpis = tab === "overview"
+    ? supabase.rpc("report_company_kpis", {
+      p_from: period.from, p_to: period.to, p_company_ids: viewer.scopeCompanyIds,
+      p_team_id: teamId ?? undefined, p_user_id: userId ?? undefined,
+    })
+    : null;
   const [teams, members] = company
     ? await Promise.all([
       supabase.from("teams").select("id, name").eq("company_id", company.id).eq("is_active", true).order("name"),
@@ -77,10 +84,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
 
   // ------------------------------------------------------------- overview
   if (tab === "overview") {
-    const { data, error } = await supabase.rpc("report_company_kpis", {
-      p_from: period.from, p_to: period.to, p_company_ids: viewer.scopeCompanyIds,
-      p_team_id: teamId ?? undefined, p_user_id: userId ?? undefined,
-    });
+    const { data, error } = await overviewKpis!;
     if (error) throw error;
     const rows = (data ?? []) as KpiRow[];
     let workshop: React.ReactNode = null;

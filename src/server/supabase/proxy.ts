@@ -47,6 +47,13 @@ export async function updateSession(request: NextRequest) {
     if (pathname !== "/") url.searchParams.set("next", pathname + search);
     return redirectWithCookies(url, response);
   }
+  // The application sent this person to /login with a reason (for example their account was closed). Their token is still
+  // cryptographically valid, so without this the next rule would send them back to "/" and the app back to /login, forever.
+  // End the session here (the proxy may write cookies; a page may not) and show the sign-in page with its message.
+  if (signedIn && pathname === "/login" && request.nextUrl.searchParams.has("error")) {
+    await supabase.auth.signOut({ scope: "local" });
+    return response;
+  }
   if (signedIn && (pathname === "/login" || pathname === "/forgot-password")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";

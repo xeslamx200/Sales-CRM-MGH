@@ -16,8 +16,9 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/export/works
   const format = url.searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
   const group = url.searchParams.get("group");
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // local check of the session token (signature + expiry); RLS and the database functions decide what may be read
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth?.claims?.sub) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: off } = await supabase.from("company_offerings").select("id, name, company_id").eq("id", id).maybeSingle();
   if (!off) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const { data: company } = await supabase.from("companies").select("timezone").eq("id", off.company_id).maybeSingle();

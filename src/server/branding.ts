@@ -1,5 +1,6 @@
 import "server-only";
-import type { ServerClient } from "@/server/supabase/server";
+import { cache } from "react";
+import { createClient, type ServerClient } from "@/server/supabase/server";
 import { DEFAULT_BRAND, HEX, type BrandColors } from "@/lib/brand";
 
 export type Branding = {
@@ -12,10 +13,16 @@ export type Branding = {
   version: string;
 };
 
-/** The company's colours and logo flags (never the logo bytes). A company without a row has the built-in MGH look. */
-export async function getBranding(supabase: ServerClient, companyId: string | null | undefined): Promise<Branding> {
-  const none: Branding = { colors: DEFAULT_BRAND, custom: false, hasLogo: false, logoPlate: false, version: "0" };
-  if (!companyId) return none;
+const NONE: Branding = { colors: DEFAULT_BRAND, custom: false, hasLogo: false, logoPlate: false, version: "0" };
+
+/** The company's colours and logo flags (never the logo bytes). A company without a row has the built-in MGH look. Read once per request. */
+export async function getBranding(_supabase: ServerClient, companyId: string | null | undefined): Promise<Branding> {
+  return companyId ? loadBranding(companyId) : NONE;
+}
+
+const loadBranding = cache(async (companyId: string): Promise<Branding> => {
+  const none = NONE;
+  const supabase = await createClient();
   const { data, error } = await supabase.from("company_branding")
     .select("brand_navy, brand_gold, brand_blue, logo_type, logo_plate, updated_at").eq("company_id", companyId).maybeSingle();
   if (error || !data) return none;
@@ -24,6 +31,6 @@ export async function getBranding(supabase: ServerClient, companyId: string | nu
     colors: ok ? { navy: data.brand_navy, gold: data.brand_gold, blue: data.brand_blue } : DEFAULT_BRAND,
     custom: true, hasLogo: Boolean(data.logo_type), logoPlate: data.logo_plate, version: String(new Date(data.updated_at).getTime()),
   };
-}
+});
 
 export const logoUrl = (companyId: string, version: string) => `/api/brand/logo?c=${companyId}&v=${version}`;

@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return new NextResponse(null, { status: 401 });
+  // local check of the session token (no request to the Auth server); getViewer then reads the profile and companies in one round trip
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth?.claims?.sub) return new NextResponse(null, { status: 401 });
   const viewer = await getViewer();
   const ids = viewer.scopeCompanyIds;
   if (ids.length === 0) return NextResponse.json({ token: "0|0" }, { headers: { "Cache-Control": "no-store" } });

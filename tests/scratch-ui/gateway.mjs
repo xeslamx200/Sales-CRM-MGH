@@ -15,15 +15,28 @@ const TEST_PASSWORD = process.env.TEST_PASSWORD ?? "test-pass-123";
 if (SECRET.length < 32) { console.error("JWT_SECRET (>= 32 chars) is required"); process.exit(1); }
 
 const b64 = (b) => Buffer.from(b).toString("base64url");
+// JWT_ALG=ES256 signs like the real Supabase project (asymmetric key, public key served at /auth/v1/.well-known/jwks.json, so the app can
+// verify a session locally with getClaims). The public JWKS is written to JWKS_FILE for PostgREST (PGRST_JWT_SECRET). Default: HS256 + JWT_SECRET.
+const ES = process.env.JWT_ALG === "ES256";
+const KID = crypto.randomUUID();
+const keys = ES ? crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" }) : null;
+const PUBLIC_JWK = keys ? { ...keys.publicKey.export({ format: "jwk" }), kid: KID, alg: "ES256", use: "sig", key_ops: ["verify"] } : null;
+if (ES && process.env.JWKS_FILE) (await import("node:fs")).writeFileSync(process.env.JWKS_FILE, JSON.stringify({ keys: [PUBLIC_JWK] }));
 const sign = (claims) => {
-  const head = b64(JSON.stringify({ alg: "HS256", typ: "JWT" })), body = b64(JSON.stringify(claims));
-  return `${head}.${body}.${crypto.createHmac("sha256", SECRET).update(`${head}.${body}`).digest("base64url")}`;
+  const head = b64(JSON.stringify(ES ? { alg: "ES256", typ: "JWT", kid: KID } : { alg: "HS256", typ: "JWT" })), body = b64(JSON.stringify(claims));
+  const sig = ES ? crypto.sign("sha256", Buffer.from(`${head}.${body}`), { key: keys.privateKey, dsaEncoding: "ieee-p1363" }).toString("base64url")
+    : crypto.createHmac("sha256", SECRET).update(`${head}.${body}`).digest("base64url");
+  return `${head}.${body}.${sig}`;
 };
 const verify = (tok) => {
   const [h, p, s] = String(tok ?? "").split(".");
   if (!h || !p || !s) return null;
-  const exp = crypto.createHmac("sha256", SECRET).update(`${h}.${p}`).digest("base64url");
-  if (s.length !== exp.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(exp))) return null;
+  if (ES) {
+    if (!crypto.verify("sha256", Buffer.from(`${h}.${p}`), { key: keys.publicKey, dsaEncoding: "ieee-p1363" }, Buffer.from(s, "base64url"))) return null;
+  } else {
+    const exp = crypto.createHmac("sha256", SECRET).update(`${h}.${p}`).digest("base64url");
+    if (s.length !== exp.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(exp))) return null;
+  }
   const c = JSON.parse(Buffer.from(p, "base64url").toString());
   return c.exp && c.exp < Date.now() / 1000 ? null : c;
 };
@@ -52,8 +65,15 @@ function session(p) {
 const json = (res, status, body) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
 const readBody = (req) => new Promise((ok) => { const c = []; req.on("data", (d) => c.push(d)); req.on("end", () => ok(Buffer.concat(c))); });
 
+// DELAY_MS (optional): simulate the network distance to the real Supabase (each request waits this long), to measure how many
+// sequential round trips a page makes. TRACE=<file>: one line per request (time, method, path) for the same purpose.
+const DELAY_MS = Number(process.env.DELAY_MS ?? 0);
+const TRACE = process.env.TRACE ?? "";
 http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
+  if (TRACE && !url.pathname.startsWith("/anon-key")) (await import("node:fs")).appendFileSync(TRACE, `${Date.now()} ${req.method} ${url.pathname}
+`);
+  if (DELAY_MS > 0 && !url.pathname.startsWith("/anon-key")) await new Promise((r) => setTimeout(r, DELAY_MS));
   try {
     if (url.pathname.startsWith("/auth/v1/")) {
       const route = url.pathname.slice("/auth/v1/".length);
@@ -100,7 +120,7 @@ http.createServer(async (req, res) => {
         return p ? json(res, 200, userJson(p)) : json(res, 401, { code: 401, error_code: "bad_jwt", msg: "invalid JWT" });
       }
       if (route === "logout") { res.writeHead(204); return res.end(); }
-      if (route === ".well-known/jwks.json") return json(res, 200, { keys: [] });
+      if (route === ".well-known/jwks.json") return json(res, 200, { keys: PUBLIC_JWK ? [PUBLIC_JWK] : [] });
       return json(res, 404, { msg: "not implemented in the scratch gateway" });
     }
     if (url.pathname.startsWith("/rest/v1/")) {

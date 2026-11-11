@@ -54,18 +54,17 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/payment
 
   // proof images (one link per payment: the first file)
   const proofOf = new Map<string, string>();
-  if (rows.length) {
-    const { data: files } = await supabase.from("attachments").select("id, entity_id").eq("entity_type", "payment")
-      .in("entity_id", rows.map((r) => r.id)).order("created_at");
-    for (const f of files ?? []) if (!proofOf.has(f.entity_id)) proofOf.set(f.entity_id, f.id);
-  }
-
   // Who may decide is enforced by the database (review_payment); this only decides which buttons to show.
   const companyIds = [...new Set(rows.map((r) => r.company_id))];
-  const [verdicts, policies] = await Promise.all([
+  // proof links and review permissions in one round trip
+  const [files, verdicts, policies] = await Promise.all([
+    rows.length
+      ? supabase.from("attachments").select("id, entity_id").eq("entity_type", "payment").in("entity_id", rows.map((r) => r.id)).order("created_at").then((r) => r.data ?? [])
+      : Promise.resolve([] as { id: string; entity_id: string }[]),
     Promise.all(companyIds.map(async (id) => [id, (await supabase.rpc("can_review_payments", { p_company_id: id })).data === true] as const)),
     supabase.from("payment_approval_policy").select("company_id").in("company_id", companyIds.length ? companyIds : [viewer.id]),
   ]);
+  for (const f of files) if (!proofOf.has(f.entity_id)) proofOf.set(f.entity_id, f.id);
   const mayReview = new Set(verdicts.filter(([, ok]) => ok).map(([id]) => id));
   const restricted = new Set((policies.data ?? []).map((p) => p.company_id));
 

@@ -41,29 +41,31 @@ export type Viewer = {
  * The signed-in user, loaded once per request with their own session (RLS
  * applies). Redirects to /login when there is no valid session or the
  * account is deactivated.
+ *
+ * Speed: the session is verified locally (getClaims checks the token's
+ * signature with the project's published key and its expiry, no request to
+ * the Auth server), and the profile, companies and memberships are read in
+ * ONE round trip. Deactivation still takes effect on the very next request,
+ * because is_active is read from the database every time.
  */
 export const getViewer = cache(async (): Promise<Viewer> => {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth.user;
-  if (!user) redirect("/login");
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) redirect("/login");
+  const claimEmail = typeof auth?.claims?.email === "string" ? auth.claims.email : "";
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, locale, is_super_admin, is_active")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Companies the user can access. RLS returns all active companies for a
+  // super admin and only member companies for everyone else.
+  const [{ data: profile }, { data: companies }, { data: memberships }] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, email, locale, is_super_admin, is_active").eq("id", userId).maybeSingle(),
+    supabase.from("companies").select("id, name, slug, timezone, currency, is_sandbox").eq("is_active", true).order("name"),
+    supabase.from("company_memberships").select("company_id, role").eq("user_id", userId).eq("is_active", true),
+  ]);
   if (!profile || !profile.is_active) {
     await supabase.auth.signOut();
     redirect("/login?error=inactive");
   }
-
-  // Companies the user can access. RLS returns all active companies for a
-  // super admin and only member companies for everyone else.
-  const [{ data: companies }, { data: memberships }] = await Promise.all([
-    supabase.from("companies").select("id, name, slug, timezone, currency, is_sandbox").eq("is_active", true).order("name"),
-    supabase.from("company_memberships").select("company_id, role").eq("user_id", user.id).eq("is_active", true),
-  ]);
   const roleBy = new Map((memberships ?? []).map((m) => [m.company_id, m.role]));
   const list: ViewerCompany[] = (companies ?? [])
     .filter((c) => profile.is_super_admin || roleBy.has(c.id))
@@ -78,9 +80,9 @@ export const getViewer = cache(async (): Promise<Viewer> => {
 
   const locale = isLocale(profile.locale) ? profile.locale : DEFAULT_LOCALE;
   return {
-    id: user.id,
-    email: user.email ?? profile.email ?? "",
-    fullName: profile.full_name || user.email || "",
+    id: userId,
+    email: claimEmail || profile.email || "",
+    fullName: profile.full_name || claimEmail || "",
     locale,
     isSuperAdmin: profile.is_super_admin,
     companies: list,

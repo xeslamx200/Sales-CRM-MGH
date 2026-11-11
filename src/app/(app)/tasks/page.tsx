@@ -32,7 +32,7 @@ export default async function TasksPage({ searchParams }: PageProps<"/tasks">) {
   const today = todayBounds(tz);
   const nowIso = new Date().toISOString();
   const supabase = await createClient();
-  const members = await listMembers(supabase, viewer.scopeCompanyIds, { activeOnly: true });
+  const membersP = listMembers(supabase, viewer.scopeCompanyIds, { activeOnly: true });   // read alongside the tasks below
 
   let q = supabase.from("tasks").select(SELECT, { count: "exact" }).in("company_id", viewer.scopeCompanyIds);
   const open = ["open", "in_progress"] as const;
@@ -50,7 +50,7 @@ export default async function TasksPage({ searchParams }: PageProps<"/tasks">) {
       break;
     }
   }
-  const { data, count, error } = await q.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  const [{ data, count, error }, members] = await Promise.all([q.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1), membersP]);
   if (error) throw error;
 
   const tabs: { key: View; label: string }[] = [

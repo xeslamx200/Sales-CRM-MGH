@@ -15,8 +15,9 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/attachm
   const { id } = await ctx.params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // local check of the session token (signature + expiry); RLS and the database functions decide what may be read
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth?.claims?.sub) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   try {
     const url = await attachmentUrl(id);
     return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "private, no-store" } });

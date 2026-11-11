@@ -41,14 +41,15 @@ export default async function PerformancePage({ searchParams }: PageProps<"/perf
   const today = todayBounds(tz).date;
   const month = parseMonth(str(sp, "month")) ?? `${today.slice(0, 7)}-01`;
   const supabase = await createClient();
-  const [perf, tiersRes] = await Promise.all([
+  const [perf, tiersRes, curRes] = await Promise.all([
     supabase.rpc("report_monthly_commission", { p_company_id: company.id, p_month: month }),
     supabase.from("commission_tiers").select("min_attainment, rate").eq("company_id", company.id).order("min_attainment"),
+    supabase.rpc("company_target_currency", { p_company_id: company.id }),
   ]);
   if (perf.error) throw perf.error;
   const rows = perf.data ?? [];
   const tiers: Tier[] = (tiersRes.data ?? []).map((x) => ({ min: Number(x.min_attainment), rate: Number(x.rate) }));
-  const cur = (await supabase.rpc("company_target_currency", { p_company_id: company.id })).data ?? "EGP";   // the currency the targets are written in (987)
+  const cur = curRes.data ?? "EGP";   // the currency the targets are written in (987)
   const eg = (n: number) => formatCurrency(n, cur, locale);
   const pctText = (f: number) => formatPercent(f, locale);
   const isAdmin = isAdminOf(viewer, company.id);

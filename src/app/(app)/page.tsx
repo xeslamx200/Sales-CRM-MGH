@@ -28,9 +28,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
   const period = reportPeriod(sp, tz);
   const supabase = await createClient();
 
-  const kpis = await supabase.rpc("report_company_kpis", {
-    p_from: period.from, p_to: period.to, p_company_ids: viewer.scopeCompanyIds,
-  });
+  // First round trip: the figures, the company's display settings and its target currency, together.
+  const [kpis, uiSettings, cur] = await Promise.all([
+    supabase.rpc("report_company_kpis", { p_from: period.from, p_to: period.to, p_company_ids: viewer.scopeCompanyIds }),
+    getCompanyUiSettings(supabase, company),
+    company ? supabase.rpc("company_target_currency", { p_company_id: company.id }) : Promise.resolve({ data: null }),
+  ]);
   if (kpis.error) throw kpis.error;
   const rows = (kpis.data ?? []) as KpiRow[];
 
@@ -47,16 +50,15 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
   let waiting: WaitingRow[] = [];
   let workload: { whatsapp_account_id: string; display_name: string; open_conversations: number; unassigned_conversations: number; unread_conversations: number }[] = [];
   const names = new Map<string, string>();
-  let targetCurrency = "EGP";
+  const targetCurrency = cur.data ?? "EGP";
   // Workshop companies: revenue comes from bookings and payments
   let dash: DashboardData | null = null;
-  const uiSettings = await getCompanyUiSettings(supabase, company);
   const workshopMode = !!company && uiSettings.dashboardMode === "workshop";
   const widget = (w: string) => !uiSettings.hiddenWidgets.includes(w);
   if (company) {
-    targetCurrency = (await supabase.rpc("company_target_currency", { p_company_id: company.id })).data ?? "EGP";
-    if (workshopMode) dash = await loadWorkshopDashboard(supabase, company.id, period, targetCurrency);
-    const [d, tg, wl, teams, ld, rs, wn] = await Promise.all([
+    // Second round trip: every panel at once (the workshop figures run alongside the other reports).
+    const [workshopData, d, tg, wl, teams, ld, rs, wn] = await Promise.all([
+      workshopMode ? loadWorkshopDashboard(supabase, company.id, period, targetCurrency) : Promise.resolve(null),
       supabase.rpc("report_daily_series", { p_company_id: company.id, p_from: period.from, p_to: period.to }),
       supabase.rpc("report_target_progress", { p_company_id: company.id }),
       supabase.rpc("report_whatsapp_workload", { p_company_ids: [company.id] }),
@@ -65,6 +67,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
       supabase.rpc("report_response_speed", { p_company_id: company.id, p_from: period.from, p_to: period.to }),
       supabase.rpc("report_waiting_now", { p_company_id: company.id }),
     ]);
+    dash = workshopData;
     if (d.error) throw d.error;
     if (ld.error) throw ld.error;
     // Response speed and the waiting list are secondary panels: if one of them cannot be computed (for instance a database time-out), the rest of the dashboard still loads.

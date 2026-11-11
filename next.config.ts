@@ -38,6 +38,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Never print server-function arguments (sign-in passwords, people's data) to the terminal, not even during development.
+  logging: { serverFunctions: false },
   experimental: {
     // CSV imports are up to 2 MB (src/lib/csv.ts); allow headroom for encoding.
     serverActions: { bodySizeLimit: "3mb" },

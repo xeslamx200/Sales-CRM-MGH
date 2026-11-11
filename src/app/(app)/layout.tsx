@@ -22,7 +22,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const cookieStore = await cookies();
 
   // Everything below runs with the user's session; RLS limits each count.
-  const [notifications, unreadNotifications, unreadInbox] = await Promise.all([
+  // One round trip for everything the shell needs (lists, counters, menu settings, colours).
+  const [notifications, unreadNotifications, unreadInbox, uiSettings, brand] = await Promise.all([
     supabase.from("notifications")
       .select("id, title, body, entity_type, entity_id, read_at, created_at")
       .eq("user_id", viewer.id).order("created_at", { ascending: false }).limit(20),
@@ -30,10 +31,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .eq("user_id", viewer.id).is("read_at", null),
     supabase.from("conversations").select("id", { count: "exact", head: true })
       .in("company_id", viewer.scopeCompanyIds).gt("unread_count", 0).eq("is_simulated", false),
+    getCompanyUiSettings(supabase, viewer.activeCompany),
+    getBranding(supabase, viewer.activeCompany?.id),
   ]);
-
-  const uiSettings = await getCompanyUiSettings(supabase, viewer.activeCompany);
-  const brand = await getBranding(supabase, viewer.activeCompany?.id);
   const timeZone = viewer.activeCompany?.timezone ?? viewer.companies[0]?.timezone ?? "UTC";
   return (
     <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>

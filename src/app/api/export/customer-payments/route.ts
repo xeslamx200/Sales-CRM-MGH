@@ -15,8 +15,9 @@ export async function GET(req: NextRequest) {
   if (!company || !UUID.test(company)) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const status = p.get("status");
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // local check of the session token (signature + expiry); RLS and the database functions decide what may be read
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth?.claims?.sub) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: co } = await supabase.from("companies").select("name, timezone").eq("id", company).maybeSingle();
   if (!co) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const { data, error } = await supabase.rpc("customer_payment_rows", {
