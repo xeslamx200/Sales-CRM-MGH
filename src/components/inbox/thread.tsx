@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { formatDateTime } from "@/lib/format.ts";
 import { cn } from "@/lib/utils";
 import { fmt } from "@/i18n";
+import { VoiceRecorder } from "@/components/inbox/voice-recorder";
 import { AttachButton, MessageMedia, TemplateComposer, type MessageMediaInfo, type TemplateOption } from "@/components/inbox/media-and-templates";
 import { LeadPanel, type LeadPanelData } from "@/components/inbox/lead-panel";
 import type { Enums } from "@/types/database";
@@ -73,6 +74,7 @@ export function ConversationThread({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [body, setBody] = useState("");
+  const [recording, setRecording] = useState(false);
   const [note, setNote] = useState("");
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const requestId = useRef<string | null>(null);
@@ -289,7 +291,7 @@ export function ConversationThread({
               </div>
             ) : (
               <form className="flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
-                <AttachButton conversationId={c.id} caption={body} disabled={pending} onSent={() => setBody("")} />
+                {!recording && <AttachButton conversationId={c.id} caption={body} disabled={pending} onSent={() => setBody("")} />}
                 <Textarea
                   value={body}
                   onChange={(e) => { setBody(e.target.value); requestId.current = null; }}
@@ -298,12 +300,16 @@ export function ConversationThread({
                   rows={2}
                   maxLength={4096}
                   dir="auto"
-                  className="rounded-2xl bg-[#f3f5f9]"
+                  className={`rounded-2xl bg-[#f3f5f9] ${recording ? "hidden" : ""}`}
                   aria-label={t.inbox.reply}
                 />
-                <Button type="submit" size="icon-lg" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={pending || !body.trim()} aria-label={t.inbox.send}>
-                  <Send className="rtl:-scale-x-100" />
-                </Button>
+                {body.trim() ? (
+                  <Button type="submit" size="icon-lg" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={pending} aria-label={t.inbox.send}>
+                    <Send className="rtl:-scale-x-100" />
+                  </Button>
+                ) : (
+                  <VoiceRecorder conversationId={c.id} disabled={pending} onSent={() => undefined} onRecordingChange={setRecording} />
+                )}
               </form>
             )
           ) : (

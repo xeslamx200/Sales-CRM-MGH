@@ -19,11 +19,36 @@ export type TemplateOption = { name: string; language: string; body: string; par
 
 // Mirrors OUTBOUND_MEDIA in src/lib/whatsapp/graph.ts (the server re-checks).
 const ACCEPT = [
-  "image/jpeg", "image/png", "application/pdf", "text/plain", "application/msword",
+  "image/*", "application/pdf", "text/plain", "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-powerpoint",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ];
+
+const IMAGE_LIMIT = 4.5 * 1024 * 1024;   // WhatsApp takes JPEG/PNG up to 5 MB
+
+/** Phone photos are often larger than WhatsApp allows, or WebP/HEIC: re-draw those as a JPEG (longest side 2048 px). Anything else is sent as it is. */
+async function prepareFile(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  if ((file.type === "image/jpeg" || file.type === "image/png") && file.size <= IMAGE_LIMIT) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    for (const side of [2048, 1600, 1200]) {
+      const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+      ctx.fillStyle = "#fff";   // transparency has no meaning in a JPEG
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+      if (blob && blob.size <= IMAGE_LIMIT) return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+    }
+  } catch { /* undecodable here (e.g. HEIC outside Safari): the server explains what is supported */ }
+  return file;
+}
 
 /**
  * The file of a message, shown IN the conversation: image, sticker, audio / voice note (player + transcript), video, or a download link for
@@ -81,8 +106,9 @@ export function AttachButton({
   const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const [pending, start] = useTransition();
-  const upload = (file: File) =>
+  const upload = (picked: File) =>
     start(async () => {
+      const file = await prepareFile(picked);
       const prep = await prepareMediaUpload({ conversationId, filename: file.name, mimeType: file.type, size: file.size });
       if (!prep.ok) {
         toast.error(prep.error);

@@ -1,11 +1,14 @@
 import type { NextConfig } from "next";
 
 // Browser talks only to this origin and Supabase (storage signed URLs).
+// If the project address is not visible while this file is evaluated (it happened on the first Vercel build: the policy came out without
+// Supabase and the browser blocked every picture, sticker and voice note served from Storage), fall back to Supabase hosted projects in
+// general instead of to nothing. A failed fallback must never silently block the files.
 const supabaseOrigin = (() => {
   try {
     return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").origin;
   } catch {
-    return "";
+    return process.env.NODE_ENV === "production" ? "https://*.supabase.co" : "";
   }
 })();
 
@@ -19,7 +22,7 @@ const csp = [
   "font-src 'self' data:",
   `connect-src 'self' ${supabaseOrigin}`.trim(),
   `media-src 'self' blob: ${supabaseOrigin}`.trim(),
-  "frame-src 'self' blob:",
+  `frame-src 'self' blob: ${supabaseOrigin}`.trim(),
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

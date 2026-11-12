@@ -60,9 +60,14 @@ async function graph(
 
 const MB = 1024 * 1024;
 /** Outbound media accepted from the CRM, within WhatsApp's limits (documents capped at 25 MB). */
-export const OUTBOUND_MEDIA: Record<string, { kind: "image" | "document"; maxBytes: number }> = {
+export const OUTBOUND_MEDIA: Record<string, { kind: "image" | "document" | "audio"; maxBytes: number }> = {
   "image/jpeg": { kind: "image", maxBytes: 5 * MB },
   "image/png": { kind: "image", maxBytes: 5 * MB },
+  // voice recorded in the CRM: OGG/Opus is the only format WhatsApp shows as a voice note; the others are sent as plain audio files
+  "audio/ogg": { kind: "audio", maxBytes: 16 * MB },
+  "audio/mp4": { kind: "audio", maxBytes: 16 * MB },
+  "audio/aac": { kind: "audio", maxBytes: 16 * MB },
+  "audio/mpeg": { kind: "audio", maxBytes: 16 * MB },
   "application/pdf": { kind: "document", maxBytes: 25 * MB },
   "text/plain": { kind: "document", maxBytes: 25 * MB },
   "application/msword": { kind: "document", maxBytes: 25 * MB },
@@ -117,11 +122,11 @@ async function sendPayload(phoneNumberId: string, payload: Record<string, unknow
 }
 
 export function sendMediaMessage(
-  opts: GraphOptions & { phoneNumberId: string; toWaId: string; kind: "image" | "document"; mediaId: string; caption?: string | null; filename?: string },
+  opts: GraphOptions & { phoneNumberId: string; toWaId: string; kind: "image" | "document" | "audio"; mediaId: string; caption?: string | null; filename?: string },
 ): Promise<SendResult> {
   if (!WA_ID.test(opts.toWaId)) return Promise.resolve(fail("invalid_recipient", "Invalid recipient"));
   const media: Record<string, string> = { id: opts.mediaId };
-  if (opts.caption) media.caption = opts.caption.slice(0, 1024);
+  if (opts.caption && opts.kind !== "audio") media.caption = opts.caption.slice(0, 1024);
   if (opts.kind === "document" && opts.filename) media.filename = safeFileName(opts.filename);
   return sendPayload(opts.phoneNumberId, { to: opts.toWaId, type: opts.kind, [opts.kind]: media }, opts);
 }

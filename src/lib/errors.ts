@@ -181,7 +181,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "payment.invalid_decision": { ar: "قرار غير صالح.", en: "Invalid decision." },
   "payment.immutable": { ar: "لا يمكن تعديل الدفعات بعد تسجيلها.", en: "Payments can't be edited once recorded." },
   "whatsapp.send_not_allowed": { ar: "الإرسال من النظام لهذا الرقم غير مسموح به حاليًا (وضع التجربة المحدود).", en: "Sending to this number from the CRM isn't allowed yet (limited test mode)." },
-  "whatsapp.kapso_text_only": { ar: "هذا الرقم يدعم إرسال الرسائل النصية فقط حاليًا (بدون وسائط أو قوالب).", en: "This number supports plain text messages only for now (no media or templates)." },
+  "whatsapp.kapso_text_only": { ar: "القوالب غير مدعومة على هذا الرقم حاليًا؛ أرسل رسالة نصية أو صورة أو ملفًا أو رسالة صوتية.", en: "Templates are not supported on this number yet; send text, an image, a file or a voice note." },
   "whatsapp.outbound_disabled": { ar: "الإرسال من هذا الرقم غير مفعّل بعد؛ الاستقبال فقط.", en: "Sending from this number isn't enabled yet; receiving only." },
   "whatsapp.sandbox_send_disabled": { ar: "الإرسال من محادثات الساندبوكس معطّل في هذه المرحلة؛ الاستقبال فقط.", en: "Sending from sandbox conversations is disabled in this phase; receiving only." },
   "conversation.sandbox_boundary": { ar: "لا يمكن نقل محادثة بين شركة ساندبوكس وشركة حقيقية.", en: "A conversation can't move between a sandbox company and a real one." },

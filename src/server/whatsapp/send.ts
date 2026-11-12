@@ -5,7 +5,8 @@ import { serverEnv } from "@/server/env";
 import { AppError } from "@/server/action";
 import { backoffMs, sendTextMessage, type SendResult } from "@/lib/whatsapp/cloud-api.ts";
 import { OUTBOUND_MEDIA, isCredentialError, sendMediaMessage, sendTemplateMessage, uploadMedia } from "@/lib/whatsapp/graph.ts";
-import { isRecipientAllowed, parseSendAllowlist, sendKapsoText } from "@/lib/kapso/send.ts";
+import { isRecipientAllowed, parseSendAllowlist, sendKapsoMedia, sendKapsoText, uploadKapsoMedia, type KapsoSendResult } from "@/lib/kapso/send.ts";
+import { isOggOpus } from "@/lib/audio/ogg-opus.ts";
 import { limitUser } from "@/server/rate-limit";
 import { recordCredentialResult } from "@/server/whatsapp/health";
 import { MEDIA_BUCKET } from "@/server/whatsapp/media";
@@ -42,8 +43,8 @@ export async function sendOutbound(conversationId: string, clientRequestId: stri
   const byBsuid = !conv.customer_wa_id && Boolean(conv.customer_bsuid);
   if (!conv.customer_wa_id && !(byBsuid && viaKapso && content.kind === "text")) throw new AppError("whatsapp.recipient_phone_unknown");
   if (viaKapso) {
-    // Kapso: text only, and only to allow-listed recipients. Both checks run BEFORE anything is queued (fail closed).
-    if (content.kind !== "text") throw new AppError("whatsapp.kapso_text_only");
+    // Kapso: text and files (no templates yet), and only to allow-listed recipients. Both checks run BEFORE anything is queued (fail closed).
+    if (content.kind === "template") throw new AppError("whatsapp.kapso_text_only");
     let allowed = false;
     try {
       const list = parseSendAllowlist(serverEnv("kapsoSend").KAPSO_SEND_ALLOWLIST);
@@ -76,10 +77,29 @@ export async function sendOutbound(conversationId: string, clientRequestId: stri
   }
 
   const admin = createAdminClient();
-  if (viaKapso && content.kind === "text") {
-    const sent = await sendKapsoText({
-      phoneNumberId: queued.phone_number_id ?? "", apiKey: serverEnv("kapsoSend").KAPSO_API_KEY, toWaId: byBsuid ? null : queued.to_wa_id, toBsuid: byBsuid ? conv.customer_bsuid : null, body: content.body,
-    });
+  if (viaKapso && content.kind !== "template") {
+    const apiKey = serverEnv("kapsoSend").KAPSO_API_KEY;
+    const phoneNumberId = queued.phone_number_id ?? "";
+    let sent: KapsoSendResult;
+    if (content.kind === "text") {
+      sent = await sendKapsoText({ phoneNumberId, apiKey, toWaId: byBsuid ? null : queued.to_wa_id, toBsuid: byBsuid ? conv.customer_bsuid : null, body: content.body });
+    } else {
+      const kind = OUTBOUND_MEDIA[content.mimeType].kind;
+      const file = await admin.storage.from(MEDIA_BUCKET).download(content.storagePath);
+      const bytes = file.data ? new Uint8Array(await file.data.arrayBuffer()) : null;
+      // OGG must really carry Opus, or WhatsApp refuses the voice note after the message already looks sent
+      const opus = content.mimeType === "audio/ogg" && bytes !== null && isOggOpus(bytes);
+      if (!bytes) {
+        sent = { ok: false, kind: "definite", code: "media_missing", message: "Upload not found", httpStatus: null };
+      } else if (content.mimeType === "audio/ogg" && !opus) {
+        sent = { ok: false, kind: "definite", code: "invalid_audio", message: "Not an OGG/Opus recording", httpStatus: null };
+      } else {
+        const up = await uploadKapsoMedia({ phoneNumberId, apiKey, bytes, mimeType: content.mimeType, filename: content.filename });
+        sent = up.ok
+          ? await sendKapsoMedia({ phoneNumberId, apiKey, toWaId: queued.to_wa_id ?? "", kind, mediaId: up.mediaId, caption: content.caption, filename: content.filename, voice: opus })
+          : { ok: false, kind: "definite", code: up.code, message: up.message, httpStatus: up.httpStatus };   // nothing reached the customer
+      }
+    }
     if (sent.ok) {
       const { error: recErr } = await admin.rpc("record_outbound_result", { p_message_id: queued.message_id, p_wa_message_id: sent.waMessageId });
       if (recErr) console.error("[kapso-send] could not record result", { code: (recErr as { code?: string }).code });
