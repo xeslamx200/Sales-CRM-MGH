@@ -14,9 +14,14 @@ function Get-Val([string]$name) {
 }
 function Put([string]$name, [string]$value, [bool]$secret) {
   $args = @("vercel", "env", "add", $name, "production", "--force")
-  if ($secret) { $args += "--sensitive" }
+  # the public values (the Supabase address and its public anon key, which ships in the browser by design) need an explicit type
+  if ($secret) { $args += "--sensitive" } else { $args += @("--type", "config", "--yes") }
+  # Windows PowerShell 5.1 turns any text a native program writes to stderr into an error when $ErrorActionPreference is "Stop":
+  # look at the exit code instead
+  $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
   $value | & npx @args *> $null
-  if ($LASTEXITCODE -ne 0) { throw "could not set $name" }
+  $code = $LASTEXITCODE; $ErrorActionPreference = $prev
+  if ($code -ne 0) { throw "could not set $name" }
   Write-Host "set $name$(if ($secret) { ' (sensitive)' })"
 }
 $bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
@@ -31,4 +36,4 @@ Put "KAPSO_PROTOCOL"                "v2"                                      $f
 Put "KAPSO_SEND_ALLOWLIST"          "*"                                       $false
 Put "CRON_SECRET"                   $cron                                     $true
 Put "APP_URL"                       $AppUrl                                   $false
-if (-not $NoDeploy) { & npx vercel deploy --prod --yes }
+if (-not $NoDeploy) { $ErrorActionPreference = "Continue"; & npx vercel deploy --prod --yes 2>&1 | ForEach-Object { "$_" }; if ($LASTEXITCODE -ne 0) { throw "deployment failed" } }
