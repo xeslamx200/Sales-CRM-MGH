@@ -26,6 +26,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "lead.conversation_not_accessible": { ar: "لا يمكنك ربط عميل محتمل بهذه المحادثة.", en: "You can't link a lead to this conversation." },
   "lead.conversation_mismatch": { ar: "المحادثة لا تخص هذا العميل أو هذه الشركة.", en: "The conversation doesn't belong to this customer or company." },
   "lead.offering_inactive": { ar: "هذه الدورة أو الخدمة غير مفعّلة.", en: "This course or service is inactive." },
+  "offering.invalid_order": { ar: "ترتيب الورش غير صالح؛ حدّث الصفحة وحاول مرة أخرى.", en: "The workshop order is not valid; reload the page and try again." },
   "offering.keyword_too_long": { ar: "الكلمة المفتاحية أطول من 60 حرفًا.", en: "A keyword is longer than 60 characters." },
   "offering.too_many_keywords": { ar: "الحد الأقصى 20 كلمة مفتاحية.", en: "At most 20 keywords are allowed." },
   "offering.immutable_field": { ar: "لا يمكن نقل الدورة إلى شركة أخرى.", en: "An offering can't be moved to another company." },

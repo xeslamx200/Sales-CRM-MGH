@@ -436,14 +436,14 @@ isOneToOne: false
                   Relationships: []
                 },"company_offerings": {
                   Row: {
-                    "company_id": string,"created_at": string,"id": string,"is_active": boolean,"keywords": (string)[],"kind": Database["public"]['Enums']["offering_kind"],"name": string,"price_egp": number | null,"updated_at": string
+                    "company_id": string,"created_at": string,"id": string,"is_active": boolean,"keywords": (string)[],"sort_order": number | null,"kind": Database["public"]['Enums']["offering_kind"],"name": string,"price_egp": number | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "company_id": string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"keywords"?: (string)[],"kind"?: Database["public"]['Enums']["offering_kind"],"name": string,"price_egp"?: number | null,"updated_at"?: string
+                    "company_id": string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"keywords"?: (string)[],"sort_order"?: number | null,"kind"?: Database["public"]['Enums']["offering_kind"],"name": string,"price_egp"?: number | null,"updated_at"?: string
                   }
                   Update: {
-                    "company_id"?: string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"keywords"?: (string)[],"kind"?: Database["public"]['Enums']["offering_kind"],"name"?: string,"price_egp"?: number | null,"updated_at"?: string
+                    "company_id"?: string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"keywords"?: (string)[],"sort_order"?: number | null,"kind"?: Database["public"]['Enums']["offering_kind"],"name"?: string,"price_egp"?: number | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1504,6 +1504,9 @@ isOneToOne: false
                            },
 "set_workshop_price":
 { Args: { "p_attendance": string,"p_country": string,"p_currency": string,"p_offering_id": string,"p_price": number }; Returns: string
+                           },
+"set_offering_order":
+{ Args: { "p_company_id": string,"p_ids": (string)[] }; Returns: number
                            },
 "set_workshop_group":
 { Args: { "p_active"?: boolean,"p_attendance": string,"p_capacity": number,"p_group_id": string,"p_name": string,"p_offering_id": string,"p_sessions": (string)[] }; Returns: string

@@ -1,21 +1,21 @@
-import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
-import { StatusBadge } from "@/components/app/status-badge";
-import { getViewer } from "@/server/auth/viewer";
+import { WorkshopBoard } from "@/components/workshops/workshop-board";
+import { getViewer, isAdminOf } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
-import { formatNumber } from "@/lib/format.ts";
 
-/** The workshops of the active company with their groups and prices at a glance; each opens its own page. */
+/** The workshops of the active company with their groups and prices at a glance; each opens its own page. Search, filters, display modes and the saved order live in WorkshopBoard. */
 export default async function WorkshopsPage() {
   const viewer = await getViewer();
-  const { t, locale } = viewer;
+  const { t } = viewer;
   const b = t.bookings;
   const companyIds = viewer.activeCompany ? [viewer.activeCompany.id] : viewer.scopeCompanyIds;
   const supabase = await createClient();
   const [offs, groups, prices] = await Promise.all([
-    supabase.from("company_offerings").select("id, name, kind, is_active").in("company_id", companyIds).order("is_active", { ascending: false }).order("name"),
+    // the saved order first (workshops not placed yet follow), then active before inactive, then by name
+    supabase.from("company_offerings").select("id, name, kind, is_active, sort_order").in("company_id", companyIds)
+      .order("sort_order", { ascending: true, nullsFirst: false }).order("is_active", { ascending: false }).order("name"),
     supabase.from("workshop_groups").select("offering_id, is_active").in("company_id", companyIds),
     supabase.from("workshop_prices").select("offering_id, is_active").in("company_id", companyIds),
   ]);
@@ -30,19 +30,11 @@ export default async function WorkshopsPage() {
     <>
       <PageHeader title={b.wkTitle} description={b.wkSub} />
       {(offs.data ?? []).length === 0 ? <EmptyState icon={BookOpen} title={t.offerings.empty} /> : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {(offs.data ?? []).map((o) => (
-            <Link key={o.id} href={`/workshops/${o.id}`} className="rounded-xl border bg-card p-4 shadow-sm transition hover:border-primary/40 hover:shadow">
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="font-semibold" dir="auto">{o.name}</h2>
-                {!o.is_active && <StatusBadge>{b.wkInactive}</StatusBadge>}
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {b.wkGroups}: <b className="ltr-nums text-foreground">{formatNumber(g.get(o.id) ?? 0, locale)}</b> · {b.wkPrices}: <b className="ltr-nums text-foreground">{formatNumber(p.get(o.id) ?? 0, locale)}</b>
-              </p>
-            </Link>
-          ))}
-        </div>
+        <WorkshopBoard
+          companyId={viewer.activeCompany?.id ?? null}
+          canArrange={Boolean(viewer.activeCompany) && isAdminOf(viewer, viewer.activeCompany?.id)}
+          items={(offs.data ?? []).map((o) => ({ id: o.id, name: o.name, kind: o.kind, isActive: o.is_active, groups: g.get(o.id) ?? 0, prices: p.get(o.id) ?? 0 }))}
+        />
       )}
     </>
   );

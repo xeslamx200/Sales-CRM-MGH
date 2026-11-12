@@ -1,4 +1,5 @@
 "use server";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/supabase/server";
 import { runAction, check, type ActionResult } from "@/server/action";
@@ -20,6 +21,19 @@ export async function saveOffering(input: OfferingInput): Promise<ActionResult<n
     revalidatePath("/admin/offerings");
     revalidatePath("/inbox");
     revalidatePath("/payments");
+    return null;
+  });
+}
+
+const orderSchema = z.object({ companyId: z.uuid(), ids: z.array(z.uuid()).max(2000) });
+
+/** The order in which a company's workshops are listed (company admin; checked again by the database function). */
+export async function saveOfferingOrder(input: z.input<typeof orderSchema>): Promise<ActionResult<null>> {
+  return runAction(orderSchema, input, async (d) => {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("set_offering_order", { p_company_id: d.companyId, p_ids: d.ids });
+    if (error) throw error;
+    revalidatePath("/workshops");
     return null;
   });
 }
