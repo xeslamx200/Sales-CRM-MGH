@@ -73,13 +73,14 @@ export function VoiceRecorder({ conversationId, disabled, onSent, onRecordingCha
           const prep = await prepareMediaUpload({ conversationId, filename, mimeType, size: ogg.byteLength });
           if (!prep.ok) return void toast.error(prep.error);
           const { error } = await createBrowserSupabase().storage.from("whatsapp-media").uploadToSignedUrl(prep.data.path, prep.data.token, new Blob([ogg as BlobPart], { type: mimeType }), { contentType: mimeType });
-          if (error) return void toast.error(t.inbox.uploadFailed);
+          if (error) { console.error("[upload]", error); return void toast.error(`${t.inbox.uploadFailed} (${error.message})`); }
           const res = await sendMedia({ conversationId, path: prep.data.path, mimeType, filename, caption: null, clientRequestId: crypto.randomUUID() });
           if (!res.ok) toast.error(res.error);
           else if (res.data.status === "failed") toast.error(t.inbox.sendFailed);
           else onSent();
-        } catch {
-          toast.error(t.inbox.uploadFailed);
+        } catch (err) {
+          console.error("[voice]", err);
+          toast.error(`${t.inbox.uploadFailed} (${err instanceof Error ? err.message : "error"})`);
         }
       });
     };

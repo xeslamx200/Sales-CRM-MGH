@@ -116,7 +116,8 @@ export function AttachButton({
       }
       const { error } = await createBrowserSupabase().storage.from("whatsapp-media").uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: file.type });
       if (error) {
-        toast.error(t.inbox.uploadFailed);
+        console.error("[upload]", error);
+        toast.error(`${t.inbox.uploadFailed} (${error.message})`);
         return;
       }
       const res = await sendMedia({

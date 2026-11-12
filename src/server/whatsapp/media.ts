@@ -38,7 +38,10 @@ export async function prepareOutboundUpload(input: { conversationId: string; fil
   if (!conv.last_inbound_at || Date.parse(conv.last_inbound_at) < Date.now() - 24 * 3_600_000) {
     throw new AppError("whatsapp.outside_service_window");
   }
-  const path = `outbound/${conv.id}/${randomBytes(9).toString("hex")}/${safeFileName(input.filename)}`;
+  // Storage keys must be plain ASCII (an Arabic file name is refused as "Invalid key"); the real name travels in the message, not in the key
+  const ext = (/\.([A-Za-z0-9]{1,8})$/.exec(input.filename)?.[1] ?? "").toLowerCase();
+  const stem = input.filename.replace(/\.[^.]*$/, "").normalize("NFKD").replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "file";
+  const path = `outbound/${conv.id}/${randomBytes(9).toString("hex")}/${stem}${ext ? `.${ext}` : ""}`;
   const { data, error } = await createAdminClient().storage.from(MEDIA_BUCKET).createSignedUploadUrl(path);
   if (error || !data) throw new AppError("generic");
   return { path: data.path, token: data.token };
