@@ -20,7 +20,7 @@ export default async function SystemPage() {
     <>
       <PageHeader title={t.system.title} description={t.system.hint} />
       <Section title={t.system.jobs}>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="text-muted-foreground">
             <tr>
               {[t.system.job, t.system.lastRun, t.common.status, t.system.result, t.system.runs24h].map((h) => (
@@ -49,7 +49,7 @@ export default async function SystemPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Section>
     </>
   );

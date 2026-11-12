@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         brandLogo={viewer.activeCompany && brand.hasLogo ? { src: logoUrl(viewer.activeCompany.id, brand.version), plate: brand.logoPlate } : brand.logoPlate ? { src: "/mgh-logo.png", plate: true } : null}
       />
       <SidebarInset className="min-w-0">
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur">
+        <header className="sticky top-0 z-20 flex h-14 min-w-0 shrink-0 items-center gap-1.5 border-b bg-background/95 px-2 backdrop-blur sm:gap-2 sm:px-3">
           <SidebarTrigger label={viewer.t.common.toggleSidebar} />
           <Separator orientation="vertical" className="h-5" />
           <CompanySwitcher
@@ -58,7 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <GlobalSearch />
             </Suspense>
           </div>
-          <div className="ms-auto flex items-center gap-2">
+          <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <LanguageToggle current={viewer.locale} signedIn />
             <NotificationsPopover items={notifications.data ?? []} unread={unreadNotifications.count ?? 0} timeZone={timeZone} />
             <UserMenu name={viewer.fullName} email={viewer.email} />

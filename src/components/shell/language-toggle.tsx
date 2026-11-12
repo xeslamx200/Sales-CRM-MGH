@@ -16,14 +16,14 @@ export function LanguageToggle({ current, signedIn }: { current: "ar" | "en"; si
   const next = current === "ar" ? "en" : "ar";
   return (
     <Button
-      type="button" variant="outline" size="sm" className="rounded-full bg-card" disabled={pending}
+      type="button" variant="outline" size="sm" className="rounded-full bg-card max-sm:px-2" disabled={pending}
       lang={next} aria-label={next === "en" ? "Switch to English" : "التبديل إلى العربية"}
       onClick={() => start(async () => {
         const res = signedIn ? await setLocale({ locale: next }) : await setGuestLocale({ locale: next });
         if (!res.ok) toast.error(res.error); else router.refresh();
       })}
     >
-      <Languages />{next === "en" ? "English" : "العربية"}
+      <Languages /><span className="hidden sm:inline">{next === "en" ? "English" : "العربية"}</span>
     </Button>
   );
 }

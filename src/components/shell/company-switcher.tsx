@@ -17,9 +17,9 @@ export function CompanySwitcher({
   if (companies.length === 0) return null;
   if (companies.length === 1 && !canSelectAll) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
         <Building2 className="size-4" />
-        <span className="max-w-48 truncate">{companies[0].name}</span>
+        <span className="max-w-24 truncate sm:max-w-48">{companies[0].name}</span>
         {companies[0].isSandbox && <StatusBadge tone="warning">{t.common.sandbox}</StatusBadge>}
       </div>
     );
@@ -35,7 +35,7 @@ export function CompanySwitcher({
         })
       }
     >
-      <SelectTrigger size="sm" className="w-56" aria-label={t.shell.selectCompany}>
+      <SelectTrigger size="sm" className="w-36 min-w-0 sm:w-56" aria-label={t.shell.selectCompany}>
         <Building2 className="size-4 text-muted-foreground" />
         <SelectValue />
       </SelectTrigger>
