@@ -135,10 +135,10 @@ test("kapso send: a 4xx for a BSUID recipient is a definite refusal (nothing was
   assert.deepEqual(r, { ok: false, kind: "definite", code: "100", message: "Param recipient is not supported", httpStatus: 400 });
 });
 
-test("kapso send wiring (files): templates are refused, a BSUID-only customer gets text only, an upload failure is a plain failure and the media send is never retried", () => {
+test("kapso send wiring (files): templates are refused, a BSUID-only customer gets no template, an upload failure is a plain failure and the media send is never retried", () => {
   const src = readFileSync(new URL("../../src/server/whatsapp/send.ts", import.meta.url), "utf8");
   assert.ok(src.includes('if (content.kind === "template") throw new AppError("whatsapp.kapso_text_only")'));
-  assert.ok(src.includes('byBsuid && viaKapso && content.kind === "text"'), "only text may go to a customer known by BSUID");
+  assert.ok(src.includes('byBsuid && viaKapso && content.kind !== "template"'), "text and files (never a template) may go to a customer known by BSUID");
   assert.equal((src.match(/sendKapsoMedia\(/g) ?? []).length, 1, "a single media send call, no retry loop");
   assert.equal((src.match(/uploadKapsoMedia\(/g) ?? []).length, 1);
   assert.ok(src.indexOf("uploadKapsoMedia({") < src.indexOf("sendKapsoMedia({"), "the file is uploaded first");

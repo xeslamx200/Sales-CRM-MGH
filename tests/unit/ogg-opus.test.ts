@@ -139,3 +139,15 @@ test("kapso media: a timeout or 5xx while sending is unconfirmed (never resent),
   }
   assert.equal(calls, 0);
 });
+
+test("kapso media: a BSUID-only customer is addressed with `recipient`, a phone always wins", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const f = (async (_u: string, init: RequestInit) => { bodies.push(JSON.parse(String(init.body))); return new Response(JSON.stringify({ messages: [{ id: "wamid.X" }] }), { status: 200 }); }) as unknown as typeof fetch;
+  const o = { phoneNumberId: PN, apiKey: KEY, mediaId: "M1", kind: "image" as const, fetchImpl: f };
+  assert.equal((await sendKapsoMedia({ ...o, toBsuid: "QA.13491208655302741918" })).ok, true);
+  assert.equal(bodies[0].recipient, "QA.13491208655302741918"); assert.equal("to" in bodies[0], false);
+  await sendKapsoMedia({ ...o, toWaId: "201000000001", toBsuid: "QA.13491208655302741918" });
+  assert.equal(bodies[1].to, "201000000001"); assert.equal("recipient" in bodies[1], false);
+  assert.equal((await sendKapsoMedia({ ...o, toBsuid: "a b" })).ok, false);
+  assert.equal((await sendKapsoMedia({ ...o })).ok, false);
+});

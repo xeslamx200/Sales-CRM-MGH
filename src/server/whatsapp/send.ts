@@ -38,10 +38,10 @@ export async function sendOutbound(conversationId: string, clientRequestId: stri
     .eq("id", conversationId).maybeSingle();
   if (!conv || !conv.account) throw new AppError("conversation.not_found");
   const viaKapso = conv.account.provider === "kapso" && !conv.account.is_simulated;
-  // A customer known only by BSUID has no phone (never derived from the BSUID). Only TEXT through a Kapso account may go to the BSUID itself;
-  // anything else is refused here and by the database.
+  // A customer known only by BSUID has no phone (never derived from the BSUID). Only text and files through a Kapso account may go to the BSUID itself;
+  // anything else (templates) is refused here and by the database.
   const byBsuid = !conv.customer_wa_id && Boolean(conv.customer_bsuid);
-  if (!conv.customer_wa_id && !(byBsuid && viaKapso && content.kind === "text")) throw new AppError("whatsapp.recipient_phone_unknown");
+  if (!conv.customer_wa_id && !(byBsuid && viaKapso && content.kind !== "template")) throw new AppError("whatsapp.recipient_phone_unknown");
   if (viaKapso) {
     // Kapso: text and files (no templates yet), and only to allow-listed recipients. Both checks run BEFORE anything is queued (fail closed).
     if (content.kind === "template") throw new AppError("whatsapp.kapso_text_only");
@@ -96,7 +96,7 @@ export async function sendOutbound(conversationId: string, clientRequestId: stri
       } else {
         const up = await uploadKapsoMedia({ phoneNumberId, apiKey, bytes, mimeType: content.mimeType, filename: content.filename });
         sent = up.ok
-          ? await sendKapsoMedia({ phoneNumberId, apiKey, toWaId: queued.to_wa_id ?? "", kind, mediaId: up.mediaId, caption: content.caption, filename: content.filename, voice: opus })
+          ? await sendKapsoMedia({ phoneNumberId, apiKey, toWaId: byBsuid ? null : queued.to_wa_id, toBsuid: byBsuid ? conv.customer_bsuid : null, kind, mediaId: up.mediaId, caption: content.caption, filename: content.filename, voice: opus })
           : { ok: false, kind: "definite", code: up.code, message: up.message, httpStatus: up.httpStatus };   // nothing reached the customer
       }
     }

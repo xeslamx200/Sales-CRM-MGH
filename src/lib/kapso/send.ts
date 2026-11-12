@@ -139,20 +139,21 @@ export type KapsoMediaKind = "image" | "document" | "audio";
 
 /** Step 2: send an uploaded file to a customer known by phone number. Same outcome rules as text (never resent when unconfirmed). */
 export async function sendKapsoMedia(opts: {
-  phoneNumberId: string; apiKey: string; toWaId: string; kind: KapsoMediaKind; mediaId: string;
+  phoneNumberId: string; apiKey: string; /** exactly one of toWaId / toBsuid (a customer known only by BSUID is addressed with `recipient`) */ toWaId?: string | null; toBsuid?: string | null; kind: KapsoMediaKind; mediaId: string;
   caption?: string | null; filename?: string | null; /** audio only: show as a voice note (needs OGG/Opus) */ voice?: boolean; timeoutMs?: number; fetchImpl?: typeof fetch;
 }): Promise<KapsoSendResult> {
-  const { phoneNumberId, apiKey, toWaId, kind, mediaId, caption, filename, voice, timeoutMs = 15_000, fetchImpl = fetch } = opts;
+  const { phoneNumberId, apiKey, toWaId, toBsuid, kind, mediaId, caption, filename, voice, timeoutMs = 15_000, fetchImpl = fetch } = opts;
   const refuse = (code: string, message: string): KapsoSendResult => ({ ok: false, kind: "definite", code, message, httpStatus: null });
   if (!/^[A-Za-z0-9]{5,30}$/.test(phoneNumberId)) return refuse("invalid_phone_number_id", "Invalid phone number id");
-  if (typeof toWaId !== "string" || !/^[1-9]\d{6,14}$/.test(toWaId)) return refuse("invalid_recipient", "Invalid recipient");
+  const byPhone = typeof toWaId === "string" && toWaId !== "";
+  if (byPhone ? !/^[1-9]\d{6,14}$/.test(toWaId as string) : !(typeof toBsuid === "string" && /^[A-Za-z0-9._:-]{3,140}$/.test(toBsuid))) return refuse("invalid_recipient", "Invalid recipient");
   if (typeof apiKey !== "string" || apiKey.length < 20) return refuse("not_configured", "Kapso API key is not configured");
   if (!/^[A-Za-z0-9._=+-]{1,200}$/.test(mediaId)) return refuse("invalid_media", "Invalid media id");
   const media: Record<string, unknown> = { id: mediaId };
   if (kind !== "audio" && caption) media.caption = caption.slice(0, 1024);   // an audio message cannot carry a caption
   if (kind === "document" && filename) media.filename = filename.slice(0, 200);
   if (kind === "audio" && voice) media.voice = true;
-  return postKapsoMessage({ phoneNumberId, apiKey, timeoutMs, fetchImpl, payload: { to: toWaId, type: kind, [kind]: media } });
+  return postKapsoMessage({ phoneNumberId, apiKey, timeoutMs, fetchImpl, payload: { ...(byPhone ? { to: toWaId } : { recipient: toBsuid }), type: kind, [kind]: media } });
 }
 
 /**

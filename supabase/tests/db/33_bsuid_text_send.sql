@@ -44,8 +44,14 @@ do $$ begin
   exception when others then insert into t_res (what, ok) values ('text to a BSUID-only customer of a Kapso production account is accepted (' || sqlerrm || ')', false); end;
 end $$;
 -- 2. everything else to the BSUID customer stays refused
-select pg_temp.expect_fail(pg_temp.msg('t993.bs', 'image'), 'whatsapp.recipient_phone_unknown', 'an image to a BSUID-only customer is refused');
-select pg_temp.expect_fail(pg_temp.msg('t993.bs', 'document'), 'whatsapp.recipient_phone_unknown', 'a document to a BSUID-only customer is refused');
+-- (1000: images, documents and voice notes may go to a BSUID-only customer too; only a template stays refused)
+do $$ declare t text; begin
+  foreach t in array array['image', 'document', 'audio'] loop
+    begin execute pg_temp.msg('t993.bs', t); insert into t_res (what, ok) values ('a ' || t || ' to a BSUID-only customer is accepted (1000)', true);
+    exception when others then insert into t_res (what, ok) values ('a ' || t || ' to a BSUID-only customer is accepted (1000) (' || sqlerrm || ')', false); end;
+  end loop;
+end $$;
+select pg_temp.expect_fail(pg_temp.msg('t993.bs', 'video'), 'whatsapp.recipient_phone_unknown', 'any other type to a BSUID-only customer is refused');
 select pg_temp.expect_fail(pg_temp.msg('t993.bs', 'template'), 'whatsapp.recipient_phone_unknown', 'a template to a BSUID-only customer is refused');
 -- 3. the other checks of the guard still apply to the BSUID customer
 update public.whatsapp_accounts set outbound_enabled = false where id = current_setting('t993.acc')::uuid;
