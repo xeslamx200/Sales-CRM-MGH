@@ -97,7 +97,7 @@ export function WorkshopBoard({ items, companyId, canArrange }: { items: Worksho
           <Button onClick={save} disabled={pending} data-testid="wk-save-order">{b.wkSaveOrder}</Button>
           <Button variant="outline" onClick={() => setArranging(false)} disabled={pending}>{b.wkCancel}</Button>
         </div>
-        <ol className="flex flex-col gap-2">
+        <ol className="flex flex-col gap-2" data-testid="wk-order-list">
           {order.map((id, idx) => {
             const i = byId.get(id);
             if (!i) return null;
