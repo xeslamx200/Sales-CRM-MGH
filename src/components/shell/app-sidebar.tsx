@@ -68,7 +68,7 @@ export function AppSidebar({ access, unreadInbox, hiddenHrefs = [], brandLogo = 
                     <span>{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
-                {item.badge ? <SidebarMenuBadge className="ltr-nums">{item.badge}</SidebarMenuBadge> : null}
+                {item.badge ? <SidebarMenuBadge><span className="ltr-nums">{item.badge}</span></SidebarMenuBadge> : null}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
