@@ -197,10 +197,10 @@ export function WorkshopBoard({ items, companyId, canArrange }: { items: Worksho
           ))}
         </ul>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {shown.map((o) => (
             <Link key={o.id} href={`/workshops/${o.id}`} prefetch={false} title={o.name}
-              className={cn("flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm hover:border-primary/40", !o.isActive && "opacity-60")}>
+              className={cn("flex min-w-0 items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm hover:border-primary/40", !o.isActive && "opacity-60")}>
               <span className="min-w-0 flex-1 truncate" dir="auto">{o.name}</span>
               <span className="ltr-nums shrink-0 text-xs text-muted-foreground">{num(o.groups)}/{num(o.prices)}</span>
             </Link>
