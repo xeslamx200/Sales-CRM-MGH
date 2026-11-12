@@ -116,6 +116,8 @@ test("every user-facing error key raised by the database has a localized message
     // workshop price history is written by the price setter only; no screen edits it
     "price.history_immutable",
     // history sync (997): service role only, the app sends well-formed batches
+    // pairing is a super-admin data step (service role); an invalid pair never comes from a screen
+    "workshop.sharing_invalid_pair",
     "kapso.invalid_history_rows", "kapso.history_batch_too_large", "kapso.invalid_history_row",
   ]);
   const missing = [...keys].filter((k) => !internal.has(k) && !hasMessage(k)).sort();

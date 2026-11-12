@@ -68,6 +68,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "payment.invalid_rates": { ar: "أسعار الصرف غير صالحة. تأكد من الأرقام وحاول مرة أخرى.", en: "The exchange rates are not valid. Check the figures and try again." },
   "settings.invalid_widget": { ar: "قسم غير معروف في لوحة التحكم.", en: "Unknown dashboard section." },
   "sync.invalid_date": { ar: "اختر يومًا صحيحًا في الماضي.", en: "Choose a valid day in the past." },
+  "workshop.sharing_name_conflict": { ar: "لا يمكن تغيير الاسم: توجد ورشة بنفس الاسم في الشركة المرتبطة. اختر اسمًا آخر.", en: "Can't use this name: a workshop with the same name already exists in the linked company. Choose another name." },
   "people.not_member": { ar: "هذا الشخص ليس عضوًا في هذه الشركة.", en: "This person is not a member of this company." },
   "people.email_in_use": { ar: "هذا البريد الإلكتروني مستخدم في حساب آخر.", en: "This e-mail address is already used by another account." },
   "people.create_failed": { ar: "تعذّر إنشاء الحساب. تحقق من البيانات وحاول مرة أخرى.", en: "Couldn't create the account. Check the details and try again." },
