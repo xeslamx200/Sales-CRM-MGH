@@ -136,9 +136,15 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
       p_company_id: company.id, p_from: period.from, p_to: period.to, p_team_id: teamId ?? undefined,
     });
     if (error) throw error;
+    // "Assigned" = how many customers carry this employee's name right now (not the number of assignment events in the period)
+    const ownedCounts = new Map<string, number>(await Promise.all((data ?? []).map(async (r) => {
+      const { count } = await supabase.from("leads").select("id", { count: "exact", head: true })
+        .eq("company_id", company.id).eq("owner_id", r.user_id).is("archived_at", null);
+      return [r.user_id, count ?? 0] as const;
+    })));
     const cols: { label: string; cell: (r: NonNullable<typeof data>[number]) => string }[] = [
       { label: t.reports.kpi.leadsCreated, cell: (r) => n(r.leads_created) },
-      { label: t.reports.kpi.leadsAssigned, cell: (r) => n(r.leads_assigned) },
+      { label: t.reports.kpi.leadsAssigned, cell: (r) => n(ownedCounts.get(r.user_id) ?? 0) },
       { label: t.reports.kpi.leadsContacted, cell: (r) => n(r.leads_contacted) },
       { label: t.reports.kpi.meetings, cell: (r) => n(r.meetings_logged) },
       { label: t.reports.kpi.followUps, cell: (r) => n(r.follow_ups_completed) },
@@ -156,7 +162,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
               <thead className="bg-muted/50">
                 <tr>
                   <th className="sticky start-0 bg-muted px-3 py-2 text-start font-medium">{t.reports.employee}</th>
-                  {cols.map((c) => <th key={c.label} className="whitespace-nowrap px-3 py-2 text-start font-medium">{c.label}</th>)}
+                  {cols.map((c) => <th key={c.label} className="whitespace-nowrap px-3 py-2 text-center font-medium">{c.label}</th>)}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -166,7 +172,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
                       <Link href={`/reports?user=${r.user_id}&period=${period.preset}${period.preset === "custom" ? `&from=${period.from}&to=${period.to}` : ""}`}
                         className="text-primary hover:underline">{r.full_name}</Link>
                     </td>
-                    {cols.map((c) => <td key={c.label} className="ltr-nums px-3 py-2 text-start">{c.cell(r)}</td>)}
+                    {cols.map((c) => <td key={c.label} className="ltr-nums px-3 py-2 text-center">{c.cell(r)}</td>)}
                   </tr>
                 ))}
               </tbody>
