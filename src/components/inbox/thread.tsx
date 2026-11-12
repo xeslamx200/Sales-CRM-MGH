@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  AlertCircle, ArrowLeftRight, Check, CheckCheck, Clock, Lock, RotateCw, Send, Smartphone, StickyNote, Target, UserCheck, UserMinus,
+  AlertCircle, ArrowLeftRight, Check, CheckCheck, ChevronDown, Clock, Lock, RotateCw, Send, Smartphone, StickyNote, Target, UserCheck, UserMinus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -173,12 +173,12 @@ export function ConversationThread({
   ));
 
   return (
-    <div className="grid h-full max-h-[80vh] gap-3 lg:grid-cols-[minmax(0,1fr)_19rem]">
+    <div className="grid h-[78dvh] max-h-[80vh] gap-3 lg:h-full lg:grid-cols-[minmax(0,1fr)_19rem]">
       {/* ------------------------------------------------------------------ conversation */}
       <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_rgba(11,31,68,0.06),0_4px_16px_rgba(11,31,68,0.04)] ring-1 ring-foreground/5">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
           <div className="flex min-w-0 items-center gap-3">
-            <Initials name={c.contactName} strong className="size-11" />
+            <Initials name={c.contactName} strong className="size-9 sm:size-11" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 {c.contactId ? (
@@ -192,7 +192,7 @@ export function ConversationThread({
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-2 items-center gap-2 sm:flex sm:w-auto sm:flex-wrap [&>*]:min-w-0">
             {statusSelect}
             {ownerControl}
           </div>
@@ -201,7 +201,14 @@ export function ConversationThread({
         {/* below lg the details column is hidden: the lead panel and notes stay reachable here */}
         <div className="lg:hidden">
           {lead ? (
-            <LeadPanel lead={lead} canAssign={canAssignOthers} assignees={assignees} />
+            // folded by default on phones: the interest / service form is taller than the chat itself
+            <details className="group border-b bg-muted/30">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 truncate">{t.autoLeads.leadPanel} · {lead.title}</span>
+                <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+              </summary>
+              <LeadPanel lead={lead} canAssign={canAssignOthers} assignees={assignees} />
+            </details>
           ) : (
             <p className="border-b bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
               {c.ownerId === null && !canAssignOthers ? t.autoLeads.claimToQualify : t.autoLeads.noLead}
@@ -209,7 +216,7 @@ export function ConversationThread({
           )}
         </div>
 
-        <div className="flex-1 space-y-2 overflow-y-auto bg-[#f3f5f9] p-4">
+        <div className="min-h-40 flex-1 space-y-2 overflow-y-auto bg-[#f3f5f9] p-3 sm:p-4">
           {olderHref && <Link href={olderHref} scroll={false} className="mx-auto rounded-full bg-card px-4 py-1.5 text-xs font-medium text-primary shadow-xs ring-1 ring-foreground/10 hover:bg-accent">{t.inbox.showEarlier}</Link>}
           {timeline.length === 0 && <p className="text-center text-sm text-muted-foreground">{t.inbox.noMessages}</p>}
           {timeline.map((item) => item.kind === "note" ? (
