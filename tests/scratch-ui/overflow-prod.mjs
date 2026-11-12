@@ -16,7 +16,7 @@ const cookies = value.length <= SIZE ? [{ name, value }] : Array.from({ length: 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 await ctx.addCookies(cookies.map((c) => ({ ...c, domain: host, path: "/", secure: true, sameSite: "Lax" })));
-await ctx.addCookies([{ name: "crm_locale", value: "en", domain: host, path: "/", secure: true }]);
+await ctx.addCookies([{ name: "crm_locale", value: process.env.LOCALE ?? "en", domain: host, path: "/", secure: true }]);
 const W = (process.env.WIDTHS ?? "320,360,390,768").split(",").map(Number);
 const PAGES = (process.env.PAGES ?? "/,/inbox,/leads,/contacts,/bookings,/workshops,/payments,/performance,/tasks,/reports,/search?q=a,/profile,/admin/settings,/admin/whatsapp,/admin/users,/admin/teams,/admin/offerings,/admin/audit,/admin/system,/bookings/new").split(",");
 const CONV = process.env.CONV ? `/inbox?c=${process.env.CONV}` : null;
