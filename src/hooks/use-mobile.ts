@@ -1,6 +1,8 @@
 import * as React from "react"
 
-const MOBILE_BREAKPOINT = 768
+// Below this width the sidebar is a slide-over menu (phones AND tablets: on a 768-1023px screen a fixed sidebar left too little room
+// for the content). Must match the lg: classes in src/components/ui/sidebar.tsx.
+const MOBILE_BREAKPOINT = 1024
 const QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
 
 function subscribe(onChange: () => void) {

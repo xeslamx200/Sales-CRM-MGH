@@ -511,6 +511,7 @@ export const en: Dictionary = {
     ownedBy: "Assigned to {name}",
     noMessages: "No messages yet.",
     showEarlier: "Show earlier messages",
+    backToList: "All conversations",
     live: "Live",
     liveOn: "New messages appear instantly, no page refresh needed",
     liveOff: "Live updates interrupted, retrying",

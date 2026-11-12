@@ -3,7 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/server/supabase/server";
-import { DEFAULT_LOCALE, getDictionary, isLocale, type Dictionary, type Locale } from "@/i18n";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, getDictionary, isLocale, type Dictionary, type Locale } from "@/i18n";
 import type { Enums } from "@/types/database";
 
 export const COMPANY_COOKIE = "crm_company";
@@ -78,7 +78,11 @@ export const getViewer = cache(async (): Promise<Viewer> => {
   // A sandbox company is only ever active when chosen explicitly; the default is a real company.
   else active = list.find((c) => c.id === wanted) ?? list.find((c) => !c.isSandbox) ?? list[0] ?? null;
 
-  const locale = isLocale(profile.locale) ? profile.locale : DEFAULT_LOCALE;
+  // One source for the language of the whole page: the same cookie the root layout uses for lang/dir and the client dictionary.
+  // The profile's language sets that cookie at sign-in and when the user changes it, so the two agree; reading the profile here
+  // gave a half-Arabic, half-English page whenever they did not (for example after a change made on another device).
+  const cookieLocale = cookieStore.get(LOCALE_COOKIE)?.value;
+  const locale: Locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
   return {
     id: userId,
     email: claimEmail || profile.email || "",

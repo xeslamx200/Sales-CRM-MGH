@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
 import { FilterBar } from "@/components/app/filter-bar";
 import { Pagination } from "@/components/app/data-table";
 import { EmptyState } from "@/components/app/states";
@@ -165,6 +165,13 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
     }
   }
 
+  // the list with the same filters, without the open conversation (the "back" link on phones)
+  const listHref = (() => {
+    const next = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && k !== "c" && k !== "msgs") next.set(k, v);
+    const qs = next.toString();
+    return qs ? `/inbox?${qs}` : "/inbox";
+  })();
   const linkFor = (id: string) => {
     const next = new URLSearchParams();
     for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && k !== "c") next.set(k, v);
@@ -222,7 +229,8 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
         { type: "select", name: "unread", label: t.inbox.unread, allLabel: t.common.all, options: [{ value: "1", label: t.inbox.unreadOnly }] },
       ]} />
       <div className="grid min-h-[70vh] gap-3 lg:grid-cols-[22rem_1fr]">
-        <aside className="overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_rgba(11,31,68,0.06),0_4px_16px_rgba(11,31,68,0.04)] ring-1 ring-foreground/5" aria-label={t.inbox.conversations}>
+        {/* Phones and tablets show one pane at a time, like WhatsApp: the list, or the open conversation with a way back to the list. */}
+        <aside className={cn("overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_rgba(11,31,68,0.06),0_4px_16px_rgba(11,31,68,0.04)] ring-1 ring-foreground/5", selectedId && "max-lg:hidden")} aria-label={t.inbox.conversations}>
           {(list ?? []).length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">{t.inbox.empty}</p>
           ) : (
@@ -268,7 +276,14 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
             <div className="border-t p-3"><Pagination page={pageNo} pageSize={INBOX_PAGE} total={listTotal ?? 0} searchParams={sp} basePath="/inbox" t={t} /></div>
           )}
         </aside>
-        <section className={cn("min-w-0", !threadIsOpen && "overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_rgba(11,31,68,0.06),0_4px_16px_rgba(11,31,68,0.04)] ring-1 ring-foreground/5")}>{thread}</section>
+        <section className={cn("min-w-0", !threadIsOpen && "overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_rgba(11,31,68,0.06),0_4px_16px_rgba(11,31,68,0.04)] ring-1 ring-foreground/5", !selectedId && "max-lg:hidden")}>
+          {selectedId && (
+            <Link href={listHref} className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm font-medium shadow-xs ring-1 ring-foreground/10 hover:bg-accent lg:hidden" data-testid="back-to-list">
+              <ArrowRight className="size-4 ltr:rotate-180" />{t.inbox.backToList}
+            </Link>
+          )}
+          {thread}
+        </section>
       </div>
     </div>
   );

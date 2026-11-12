@@ -17,11 +17,11 @@ function ColorField({ id, label, hint, value, onChange }: { id: string; label: s
   const { t } = useI18n();
   const hex = normalizeHex(value);
   return (
-    <div className="grid gap-1.5">
+    <div className="grid min-w-0 gap-1.5">
       <label htmlFor={id} className="text-sm font-medium">{label}</label>
       <div className="flex items-center gap-2">
         <input type="color" aria-label={`${label} (${t.branding.hex})`} value={hex ?? "#000000"} onChange={(e) => onChange(e.target.value)} className="h-9 w-12 cursor-pointer rounded-md border bg-background p-1" />
-        <Input id={id} dir="ltr" value={value} onChange={(e) => onChange(e.target.value)} maxLength={7} className={cn("w-32 font-mono", !hex && "border-destructive")} aria-invalid={!hex} />
+        <Input id={id} dir="ltr" value={value} onChange={(e) => onChange(e.target.value)} maxLength={7} className={cn("w-full min-w-0 max-w-32 font-mono", !hex && "border-destructive")} aria-invalid={!hex} />
       </div>
       <p className="text-xs text-muted-foreground">{hint}</p>
     </div>
@@ -92,7 +92,7 @@ export function BrandingForm({ companyId, initial, custom, logoSrc, plate: plate
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <ColorField id="brand-navy" label={b.navy} hint={b.navyHint} value={navy} onChange={setNavy} />
           <ColorField id="brand-gold" label={b.gold} hint={b.goldHint} value={gold} onChange={setGold} />
           <ColorField id="brand-blue" label={b.blue} hint={b.blueHint} value={blue} onChange={setBlue} />

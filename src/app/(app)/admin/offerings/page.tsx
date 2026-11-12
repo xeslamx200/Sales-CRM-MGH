@@ -34,7 +34,7 @@ export default async function OfferingsPage() {
         )}
       />
       {(data ?? []).length === 0 ? <EmptyState icon={BookOpen} title={t.offerings.empty} /> : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
+        <div className="relative min-w-0 max-w-full overflow-x-auto rounded-lg border bg-card">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>

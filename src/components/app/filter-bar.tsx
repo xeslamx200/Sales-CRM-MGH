@@ -1,7 +1,7 @@
 "use client";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,10 +35,12 @@ export function FilterBar({ filters, className }: { filters: FilterDef[]; classN
   };
 
   const active = filters.some((f) => params.get(f.name));
+  // On a phone the list must come first: the search stays visible, the other filters fold behind one button (with the number in use).
+  const [open, setOpen] = useState(false);
+  const others = filters.filter((f) => f.type !== "search");
+  const inUse = others.filter((f) => params.get(f.name)).length;
 
-  return (
-    <div className={cn("flex flex-wrap items-end gap-2", pending && "opacity-70", className)}>
-      {filters.map((f) => {
+  const renderOne = (f: FilterDef) => {
         if (f.type === "search") {
           return (
             <form
@@ -78,7 +80,23 @@ export function FilterBar({ filters, className }: { filters: FilterDef[]; classN
               onChange={(e) => update({ [f.name]: e.target.value || null })} />
           </label>
         );
-      })}
+  };
+
+  return (
+    <div className={cn("flex flex-wrap items-end gap-2", pending && "opacity-70", className)}>
+      {filters.filter((f) => f.type === "search").map(renderOne)}
+      {others.length > 0 && (
+        <Button type="button" variant="outline" size="sm" className="sm:hidden" aria-expanded={open} onClick={() => setOpen((v) => !v)} data-testid="filters-toggle">
+          <SlidersHorizontal />
+          {t.common.filters}
+          {inUse > 0 && <span className="ltr-nums rounded-full bg-primary px-1.5 text-[11px] text-primary-foreground">{inUse}</span>}
+        </Button>
+      )}
+      {others.length > 0 && (
+        <div className={cn("flex w-full flex-wrap items-end gap-2 sm:contents", !open && "max-sm:hidden")}>
+          {others.map(renderOne)}
+        </div>
+      )}
       {active && (
         <Button variant="ghost" size="sm" onClick={() => update(Object.fromEntries(filters.map((f) => [f.name, null])))}>
           <X />
