@@ -20,7 +20,7 @@ export function Tile({ label, value, hint, tone, icon: Icon, accent = "gold" }:
     <div className="flex items-start justify-between gap-3 rounded-2xl bg-card p-4 shadow-[0_1px_2px_rgba(11,31,68,0.06),0_4px_16px_rgba(11,31,68,0.04)] ring-1 ring-foreground/5">
       <div className="flex min-w-0 flex-col gap-1">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <span className={cn("ltr-nums self-start text-2xl font-semibold tracking-tight", tone === "danger" && "text-destructive")}>{value}</span>
+        <span className={cn("ltr-nums max-w-full self-start break-words text-xl font-semibold tracking-tight sm:text-2xl", tone === "danger" && "text-destructive")}>{value}</span>
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
       {Icon && <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", chip)}><Icon className="size-5" /></span>}

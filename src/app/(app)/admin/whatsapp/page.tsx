@@ -54,8 +54,8 @@ export default async function WhatsappNumbersPage() {
           {visible.map((a) => {
             const granted = new Set(a.access.map((g) => g.user_id));
             return (
-              <section key={a.id} className="flex flex-col gap-3 rounded-lg border bg-card p-4">
-                <div className="flex items-start justify-between gap-2">
+              <section key={a.id} className="flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h2 className="font-semibold">{a.display_name}</h2>
                     <p className="ltr-nums text-sm text-muted-foreground">{a.phone_e164}</p>
@@ -64,7 +64,7 @@ export default async function WhatsappNumbersPage() {
                       {a.phone_number_id && <> · ID <span className="ltr-nums">{a.phone_number_id}</span></>}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     {a.is_simulated && <StatusBadge tone="warning">{t.common.simulated}</StatusBadge>}
                     {a.provider === "kapso" && (a.environment === "sandbox"
                       ? <StatusBadge tone="warning">{t.common.sandbox} · Kapso</StatusBadge>
