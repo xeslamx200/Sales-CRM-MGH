@@ -208,7 +208,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
       </div>
       <div className="flex flex-wrap gap-2" role="tablist" aria-label={t.common.status}>
         {pills.map((p) => (
-          <Link key={p.key} href={p.href} role="tab" aria-selected={p.on}
+          <Link key={p.key} href={p.href} prefetch={false} role="tab" aria-selected={p.on}
             className={cn("rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
               p.on ? "bg-primary text-primary-foreground" : "bg-card text-foreground shadow-xs ring-1 ring-foreground/10 hover:bg-accent")}>
             {p.label}
@@ -237,7 +237,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
             <ul className="max-h-[75vh] divide-y overflow-y-auto">
               {(list ?? []).map((c) => (
                 <li key={c.id}>
-                  <Link href={linkFor(c.id)} aria-current={c.id === selectedId ? "page" : undefined}
+                  <Link href={linkFor(c.id)} prefetch={false} aria-current={c.id === selectedId ? "page" : undefined}
                     className={cn("flex items-start gap-3 px-3 py-2.5 text-sm hover:bg-muted", c.id === selectedId && "bg-accent")}>
                     <Initials name={c.contact?.full_name ?? "?"} strong={c.id === selectedId} />
                     <div className="flex min-w-0 flex-1 flex-col gap-1">

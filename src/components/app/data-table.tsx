@@ -77,10 +77,10 @@ export function Pagination({
       <div className="flex items-center gap-2">
         <span>{fmt(t.common.page, { page: formatNumber(page), pages: formatNumber(pages) })}</span>
         <Button variant="outline" size="icon-sm" asChild={page > 1} disabled={page <= 1} aria-label={t.common.previous}>
-          {page > 1 ? <Link href={href(page - 1)}><ChevronRight className="ltr:rotate-180" /></Link> : <ChevronRight className="ltr:rotate-180" />}
+          {page > 1 ? <Link href={href(page - 1)} prefetch={false}><ChevronRight className="ltr:rotate-180" /></Link> : <ChevronRight className="ltr:rotate-180" />}
         </Button>
         <Button variant="outline" size="icon-sm" asChild={page < pages} disabled={page >= pages} aria-label={t.common.next}>
-          {page < pages ? <Link href={href(page + 1)}><ChevronLeft className="ltr:rotate-180" /></Link> : <ChevronLeft className="ltr:rotate-180" />}
+          {page < pages ? <Link href={href(page + 1)} prefetch={false}><ChevronLeft className="ltr:rotate-180" /></Link> : <ChevronLeft className="ltr:rotate-180" />}
         </Button>
       </div>
     </div>
