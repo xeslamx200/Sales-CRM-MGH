@@ -679,6 +679,8 @@ export const ar = {
     interest: "الاهتمام",
     offering: "الدورة / الخدمة",
     noOffering: "غير محدّدة",
+    offeringSearch: "اكتب للبحث عن ورشة أو خدمة…",
+    offeringNoMatch: "لا توجد ورشة مطابقة.",
     offeringAuto: "اكتُشفت تلقائيًا",
     offeringEmployee: "حدّدها موظف",
     owner: "المسؤول",

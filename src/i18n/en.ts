@@ -681,6 +681,8 @@ export const en: Dictionary = {
     interest: "Interest",
     offering: "Course / service",
     noOffering: "Not identified",
+    offeringSearch: "Type to search workshops…",
+    offeringNoMatch: "No matching workshop.",
     offeringAuto: "detected automatically",
     offeringEmployee: "selected by an employee",
     owner: "Assigned to",

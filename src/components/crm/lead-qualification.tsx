@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useI18n } from "@/components/i18n-provider";
 import { setLeadInterest, setLeadOffering } from "@/actions/leads";
 import { Constants, type Enums } from "@/types/database";
@@ -82,13 +83,11 @@ export function LeadQualification({
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor={`${idPrefix}-offering`}>{t.autoLeads.offering}</Label>
-        <Select value={offeringValue ?? NONE} onValueChange={changeOffering} disabled={disabled || pending}>
-          <SelectTrigger id={`${idPrefix}-offering`} size="sm" className="w-full"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NONE}>{t.autoLeads.noOffering}</SelectItem>
-            {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          id={`${idPrefix}-offering`} value={offeringValue ?? NONE} onChange={changeOffering} disabled={disabled || pending}
+          options={[{ value: NONE, label: t.autoLeads.noOffering }, ...options.map((o) => ({ value: o.value, label: o.label }))]}
+          searchPlaceholder={t.autoLeads.offeringSearch} emptyText={t.autoLeads.offeringNoMatch}
+        />
         {offeringValue && source && (
           <p className="text-xs text-muted-foreground">{source === "auto_keyword" ? t.autoLeads.offeringAuto : t.autoLeads.offeringEmployee}</p>
         )}
