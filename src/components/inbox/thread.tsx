@@ -135,7 +135,7 @@ export function ConversationThread({
       const res = await setConversationStatus({ conversationId: c.id, status: v as Enums<"conversation_status"> });
       if (!res.ok) toast.error(res.error);
     })}>
-      <SelectTrigger size="sm" className="w-32 rounded-full bg-card" aria-label={t.common.status}><SelectValue /></SelectTrigger>
+      <SelectTrigger size="sm" className="w-full rounded-full bg-card sm:w-32" aria-label={t.common.status}><SelectValue /></SelectTrigger>
       <SelectContent>
         {(["open", "pending", "resolved"] as const).map((s) => (
           <SelectItem key={s} value={s}>{t.enums.conversationStatus[s]}</SelectItem>
@@ -145,7 +145,7 @@ export function ConversationThread({
   );
   const ownerControl = canAssignOthers ? (
     <Select value={c.ownerId ?? UNASSIGN} disabled={pending} onValueChange={(v) => assign(v === UNASSIGN ? null : v)}>
-      <SelectTrigger size="sm" className="w-44 rounded-full bg-card" aria-label={t.common.owner}><SelectValue /></SelectTrigger>
+      <SelectTrigger size="sm" className="w-full rounded-full bg-card sm:w-44" aria-label={t.common.owner}><SelectValue /></SelectTrigger>
       <SelectContent>
         <SelectItem value={UNASSIGN}>{t.common.unassigned}</SelectItem>
         <SelectSeparator />
@@ -153,9 +153,9 @@ export function ConversationThread({
       </SelectContent>
     </Select>
   ) : c.ownerId === null ? (
-    <Button size="sm" variant="outline" className="rounded-full" disabled={pending} onClick={() => assign(viewerId)}>{t.inbox.claim}</Button>
+    <Button size="sm" variant="outline" className="w-full rounded-full sm:w-auto" disabled={pending} onClick={() => assign(viewerId)}>{t.inbox.claim}</Button>
   ) : c.ownerId === viewerId ? (
-    <Button size="sm" variant="ghost" className="rounded-full" disabled={pending} onClick={() => assign(null)}>{t.inbox.release}</Button>
+    <Button size="sm" variant="ghost" className="w-full rounded-full sm:w-auto" disabled={pending} onClick={() => assign(null)}>{t.inbox.release}</Button>
   ) : (
     <span className="text-xs text-muted-foreground">{fmt(t.inbox.ownedBy, { name: c.ownerName ?? "—" })}</span>
   );
