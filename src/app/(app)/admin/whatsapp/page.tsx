@@ -9,6 +9,7 @@ import { createClient } from "@/server/supabase/server";
 import { listMembers, peopleOptions } from "@/server/data/members";
 import { GrantRow, AddGrantForm, SendingSwitch, WaAccountDialog } from "./whatsapp-forms";
 import { NumberTools } from "./number-tools";
+import { HistorySync } from "./history-sync";
 import { formatDateTime } from "@/lib/format.ts";
 
 export default async function WhatsappNumbersPage() {
@@ -45,6 +46,7 @@ export default async function WhatsappNumbersPage() {
           <WaAccountDialog companies={companyOptions} trigger={<Button><Plus />{t.admin.newNumber}</Button>} />
         )}
       />
+      {viewer.isSuperAdmin && visible.some((a) => a.provider === "kapso" && a.environment === "production") && <HistorySync defaultFrom="2026-08-01" />}
       {visible.length === 0 ? (
         <EmptyState icon={Phone} title={t.admin.noNumbers} description={t.admin.noNumbersHint} />
       ) : (

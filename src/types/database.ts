@@ -1603,6 +1603,9 @@ isOneToOne: false
               "booked_value": number,"bookings": number,"collected": number,"currency": string,"offering_id": string,"offering_name": string,"remaining": number
             }[]
                            },
+"kapso_import_history":
+{ Args: { "p_phone_number_id": string,"p_rows": Json }; Returns: Json
+                           },
 "set_company_ui_settings_v2":
 { Args: { "p_company_id": string,"p_dashboard_mode": string,"p_hidden_nav": (string)[],"p_hidden_widgets": (string)[] }; Returns: undefined
                            },

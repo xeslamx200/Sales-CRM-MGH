@@ -13,7 +13,7 @@ docker exec -i "$PG" psql -U postgres -v ON_ERROR_STOP=1 -q -d "$DB" < supabase/
 docker exec -i "$PG" psql -U postgres -v ON_ERROR_STOP=1 -q -d "$DB" < supabase/migrations/20261104000990_workshop_dashboard.sql
 docker exec -i "$PG" psql -U postgres -v ON_ERROR_STOP=1 -q -d "$DB" < supabase/migrations/20261104000991_company_ui_settings.sql
 docker exec -i "$PG" psql -U postgres -v ON_ERROR_STOP=1 -q -d "$DB" < supabase/migrations/20261104000992_company_branding.sql
-for m in 20261104000993_kapso_bsuid_text_send 20261104000994_response_speed_indexed 20261104000995_report_turns_indexed 20261104000996_dashboard_widgets; do
+for m in 20261104000993_kapso_bsuid_text_send 20261104000994_response_speed_indexed 20261104000995_report_turns_indexed 20261104000996_dashboard_widgets 20261104000997_kapso_history_sync; do
   docker exec -i "$PG" psql -U postgres -v ON_ERROR_STOP=1 -q -d "$DB" < "supabase/migrations/$m.sql"
 done
 docker exec -i "$PG" psql -U postgres -v ON_ERROR_STOP=1 -q -At -d "$DB" < tests/scratch-ui/seed.sql >/dev/null

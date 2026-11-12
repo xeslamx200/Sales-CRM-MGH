@@ -115,6 +115,8 @@ test("every user-facing error key raised by the database has a localized message
     "webhook.invalid_payload_kind", "webhook.invalid_reason", "webhook.payload_too_large", "whatsapp.isolation_unsupported",
     // workshop price history is written by the price setter only; no screen edits it
     "price.history_immutable",
+    // history sync (997): service role only, the app sends well-formed batches
+    "kapso.invalid_history_rows", "kapso.history_batch_too_large", "kapso.invalid_history_row",
   ]);
   const missing = [...keys].filter((k) => !internal.has(k) && !hasMessage(k)).sort();
   assert.deepEqual(missing, [], `add messages to src/lib/errors.ts for: ${missing.join(", ")}`);
