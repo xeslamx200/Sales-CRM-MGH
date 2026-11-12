@@ -415,7 +415,7 @@ export const en: Dictionary = {
     tabs: { overview: "Overview", comparison: "Comparison", employees: "Employee performance", whatsapp: "WhatsApp response", targets: "Targets", shifts: "Shifts" },
     kpi: {
       leadsCreated: "Leads created",
-      leadsAssigned: "Customers assigned (now)",
+      leadsAssigned: "Customers assigned now (this company)",
       leadsContacted: "Leads contacted",
       activities: "Activities logged",
       calls: "Calls logged",

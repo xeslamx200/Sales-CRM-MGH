@@ -413,7 +413,7 @@ export const ar = {
     tabs: { overview: "نظرة عامة", comparison: "مقارنات", employees: "أداء الموظفين", whatsapp: "استجابة واتساب", targets: "الأهداف", shifts: "الشيفتات" },
     kpi: {
       leadsCreated: "عملاء محتملون جدد",
-      leadsAssigned: "عملاء مُسندون إليه (حاليًا)",
+      leadsAssigned: "عملاء مُسندون إليه حاليًا (في هذه الشركة)",
       leadsContacted: "عملاء تم التواصل معهم",
       activities: "أنشطة مسجلة",
       calls: "مكالمات مسجلة",

@@ -136,10 +136,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
       p_company_id: company.id, p_from: period.from, p_to: period.to, p_team_id: teamId ?? undefined,
     });
     if (error) throw error;
-    // "Assigned" = how many customers carry this employee's name right now (not the number of assignment events in the period)
+    // "Assigned" = how many customers (open WhatsApp conversations, the ones in the employee's inbox) carry this employee's name right now,
+    // in the company of this report; not the number of assignment events in the period
     const ownedCounts = new Map<string, number>(await Promise.all((data ?? []).map(async (r) => {
-      const { count } = await supabase.from("leads").select("id", { count: "exact", head: true })
-        .eq("company_id", company.id).eq("owner_id", r.user_id).is("archived_at", null);
+      const { count } = await supabase.from("conversations").select("id", { count: "exact", head: true })
+        .eq("company_id", company.id).eq("owner_id", r.user_id).in("status", ["open", "pending"]);
       return [r.user_id, count ?? 0] as const;
     })));
     const cols: { label: string; cell: (r: NonNullable<typeof data>[number]) => string }[] = [
