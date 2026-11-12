@@ -17,3 +17,5 @@ next-env.d.ts
 
 # output of the local browser tests (screenshots, results)
 tests/scratch-ui/out/
+
+.env*
