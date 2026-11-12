@@ -23,11 +23,13 @@ const CONV = process.env.CONV ? `/inbox?c=${process.env.CONV}` : null;
 if (CONV) PAGES.push(CONV);
 const page = await ctx.newPage();
 const out = [];
+const SHOT = process.env.SHOT;
 for (const w of W) {
   await page.setViewportSize({ width: w, height: 800 });
   for (const p of PAGES) {
     await page.goto(`${APP}${p}`, { waitUntil: "load", timeout: 120000 });
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => undefined);
+    if (SHOT) await page.screenshot({ path: `${SHOT}-${w}.png` });
     const r = await page.evaluate(() => {
       const vw = document.documentElement.clientWidth;
       const over = [];

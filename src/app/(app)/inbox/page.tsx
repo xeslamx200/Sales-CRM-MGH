@@ -198,7 +198,8 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
+      {/* on a phone an open conversation gets the whole screen: the title, tabs and filters come back with "back to the list" */}
+      <div className={cn("flex items-center gap-3", selectedId && "max-lg:hidden")}>
         <span className="flex size-10 items-center justify-center rounded-full bg-[#e8f6ec] text-success"><MessageCircle className="size-5" /></span>
         <div>
           <h1 className="text-xl font-semibold">{t.nav.inbox}</h1>
@@ -206,7 +207,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
         </div>
         <div className="ms-auto"><InboxLive /></div>
       </div>
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t.common.status}>
+      <div className={cn("flex flex-wrap gap-2", selectedId && "max-lg:hidden")} role="tablist" aria-label={t.common.status}>
         {pills.map((p) => (
           <Link key={p.key} href={p.href} prefetch={false} role="tab" aria-selected={p.on}
             className={cn("rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
@@ -215,7 +216,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
           </Link>
         ))}
       </div>
-      <FilterBar filters={[
+      <div className={cn(selectedId && "max-lg:hidden")}><FilterBar filters={[
         { type: "search", name: "q", placeholder: t.inbox.search },
         { type: "select", name: "assigned", label: t.autoLeads.filterEmployee, options: [
           { value: "mine", label: t.common.me }, { value: "unassigned", label: t.common.unassigned },
@@ -227,7 +228,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
           options: (offeringRows ?? []).map((o) => ({ value: o.id, label: multiCompany ? `${o.name} · ${companyNames.get(o.company_id) ?? ""}` : o.name })) },
         { type: "select", name: "number", label: t.inbox.number, options: (numbers ?? []).map((n) => ({ value: n.id, label: n.display_name })) },
         { type: "select", name: "unread", label: t.inbox.unread, allLabel: t.common.all, options: [{ value: "1", label: t.inbox.unreadOnly }] },
-      ]} />
+      ]} /></div>
       <div className="grid min-h-[70vh] gap-3 lg:grid-cols-[22rem_1fr]">
         {/* Phones and tablets show one pane at a time, like WhatsApp: the list, or the open conversation with a way back to the list. */}
         <aside className={cn("overflow-hidden rounded-2xl bg-card shadow-[0_1px_2px_rgba(11,31,68,0.06),0_4px_16px_rgba(11,31,68,0.04)] ring-1 ring-foreground/5", selectedId && "max-lg:hidden")} aria-label={t.inbox.conversations}>
