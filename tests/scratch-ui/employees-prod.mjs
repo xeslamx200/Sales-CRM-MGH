@@ -22,7 +22,6 @@ await page.setViewportSize({ width: 1440, height: 900 });
 await page.goto(`${APP}/reports?tab=employees&period=30d`, { waitUntil: "load" }); await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => undefined);
 const r = await page.evaluate(() => {
   const ths = [...document.querySelectorAll("table thead th")], rows = [...document.querySelectorAll("table tbody tr")];
-  const mid = (el) => { const b = el.getBoundingClientRect(); return Math.round(b.left + b.width / 2); };
   const textMid = (el) => { const g = document.createRange(); g.selectNodeContents(el); const b = g.getBoundingClientRect(); return Math.round(b.left + b.width / 2); };
   return { heads: ths.map((t) => t.textContent.trim()), rows: rows.map((tr) => [...tr.children].map((c) => c.textContent.trim())), drift: rows.slice(0, 3).map((tr) => [...tr.children].slice(1).map((c, i) => Math.abs(textMid(c) - textMid(ths[i + 1])))) };
 }).catch((e) => ({ error: String(e) }));
