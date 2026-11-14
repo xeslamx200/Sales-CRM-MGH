@@ -6,7 +6,8 @@ import "./globals.css";
 
 const font = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700"],
+  // no 700: the interface never asks for font-bold (bold text uses 600), so a fourth weight only cost two more font files on every page
+  weight: ["400", "500", "600"],
   variable: "--font-arabic",
   display: "swap",
 });

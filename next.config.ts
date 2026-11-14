@@ -46,9 +46,16 @@ const nextConfig: NextConfig = {
   experimental: {
     // CSV imports are up to 2 MB (src/lib/csv.ts); allow headroom for encoding.
     serverActions: { bodySizeLimit: "3mb" },
+    // Pages the person just visited are kept in the browser for 30 s, so going back and forth between pages is instant instead of waiting for the
+    // server each time. Anything that saves (a server action) or the live inbox check refreshes what is shown, so this never hides a change made here.
+    staleTimes: { dynamic: 30, static: 180 },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // the logo never changes under the same name: let browsers keep it for a day instead of asking the server on every page
+      { source: "/mgh-logo.png", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
+    ];
   },
 };
 

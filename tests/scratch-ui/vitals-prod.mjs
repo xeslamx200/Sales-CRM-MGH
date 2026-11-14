@@ -29,16 +29,16 @@ if (PHONE) {
   await cdp.send("Network.enable");
   await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 });
 }
+await page.addInitScript(() => {
+  window.__v = { lcp: 0, cls: 0, tbt: 0 };
+  new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__v.lcp = e.startTime; }).observe({ type: "largest-contentful-paint", buffered: true });
+  new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__v.cls += e.value; }).observe({ type: "layout-shift", buffered: true });
+  new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__v.tbt += Math.max(0, e.duration - 50); }).observe({ type: "longtask", buffered: true });
+});
 const rows = [];
 for (const p of PAGES) {
   for (const visit of ["cold", "warm"]) {
     if (visit === "cold") await cdp.send("Network.clearBrowserCache").catch(() => undefined);
-    await page.addInitScript(() => {
-      window.__v = { lcp: 0, cls: 0, tbt: 0 };
-      new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__v.lcp = e.startTime; }).observe({ type: "largest-contentful-paint", buffered: true });
-      new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__v.cls += e.value; }).observe({ type: "layout-shift", buffered: true });
-      new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__v.tbt += Math.max(0, e.duration - 50); }).observe({ type: "longtask", buffered: true });
-    });
     let bytes = 0; const onResp = (r) => { const l = r.headers()["content-length"]; if (l) bytes += Number(l); };
     page.on("response", onResp);
     const t0 = Date.now();
