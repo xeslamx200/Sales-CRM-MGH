@@ -43,3 +43,21 @@ export async function deleteRole(input: { id: string }): Promise<ActionResult<nu
     return null;
   });
 }
+
+const builtinSchema = z.object({
+  companyId: z.uuid(),
+  role: z.enum(Constants.public.Enums.app_role).refine((r) => r !== "company_admin"),
+  hiddenNav: z.array(z.enum(HIDEABLE_PAGES)).max(20),
+  denied: z.array(z.enum(PERMISSION_KEYS)).max(20),
+});
+
+/** What a built-in role (sales manager / agent / customer service) can open and do in this company. Saving "nothing restricted" removes the row. */
+export async function saveBuiltinRole(input: z.input<typeof builtinSchema>): Promise<ActionResult<null>> {
+  return runAction(builtinSchema, input, async (d) => {
+    const supabase = await createClient();
+    const permissions = Object.fromEntries(PERMISSION_KEYS.map((k) => [k, !d.denied.includes(k)]));
+    check(await supabase.rpc("save_builtin_role", { p_company_id: d.companyId, p_role: d.role, p_hidden_nav: d.hiddenNav, p_permissions: permissions }));
+    refresh();
+    return null;
+  });
+}

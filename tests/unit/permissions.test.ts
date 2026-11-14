@@ -25,6 +25,10 @@ test("custom roles: the keys the application knows are exactly the ones the data
   const grab = (name: string) => [...(new RegExp(`${name} text\\[\\] := array\\[([^\\]]*)\\]`).exec(sql)?.[1] ?? "").matchAll(/'([^']+)'/g)].map((m) => m[1]);
   assert.deepEqual(grab("v_allowed_perm"), [...PERMISSION_KEYS]);
   assert.deepEqual(grab("v_allowed_nav"), [...HIDEABLE_PAGES]);
+  const builtin = readFileSync(new URL("../../supabase/migrations/20261104001008_builtin_role_settings.sql", import.meta.url), "utf8");
+  const grabB = (name: string) => [...(new RegExp(`${name} text\\[\\] := array\\[([^\\]]*)\\]`).exec(builtin)?.[1] ?? "").matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(grabB("v_allowed_perm"), [...PERMISSION_KEYS], "the built-in role function accepts the same switches");
+  assert.deepEqual(grabB("v_allowed_nav"), [...HIDEABLE_PAGES], "... and the same pages");
 });
 
 test("custom roles: every protected action asks requirePermission, and every hideable section has its guard layout", () => {

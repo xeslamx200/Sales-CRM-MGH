@@ -1218,6 +1218,11 @@ export const en: Dictionary = {
   },
   roles: {
     title: "Roles",
+    builtinTitle: "Built-in roles",
+    builtinHint: "The roles every company starts with. Edit what each one can open and do in this company; it applies to everyone who has the role. The company admin role always has full access.",
+    builtinDialogHint: "Applies to everyone with this role in this company, the next time they open a page. A custom role based on it adds its own limits on top.",
+    adminFull: "Full access (cannot be restricted)",
+    customTitle: "Custom roles",
     hint: "Add roles of your own (for example \"Workshop supervisor\"). Each role sits on one of the built-in roles, which decides WHICH DATA the person can reach; the custom role can only take pages and actions away from it.",
     add: "Add a role",
     edit: "Edit role",

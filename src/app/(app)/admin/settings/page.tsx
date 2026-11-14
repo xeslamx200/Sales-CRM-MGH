@@ -9,7 +9,7 @@ import { getCompanyUiSettings } from "@/server/company-settings";
 import { getBranding, logoUrl } from "@/server/branding";
 import { BrandingForm } from "./branding-form";
 import { PeopleSection, type PersonAccount } from "./people-section";
-import { RolesSection, type RoleRow } from "./roles-section";
+import { RolesSection, type BuiltinRoleRow, type RoleRow } from "./roles-section";
 import { parseDenied } from "@/lib/permissions";
 import { ApproversForm, ExclusionRow, TargetCurrencyForm, TargetDefaultRow, UiSettingsForm, type PersonRow } from "./settings-forms";
 
@@ -22,7 +22,7 @@ export default async function CompanySettingsPage() {
   const c = t.companySettings;
   const supabase = await createClient();
 
-  const [members, policy, approvers, defaults, cur, rates, exclusions, ui, brand, allMembers, teamRows, phoneRows, roleRows] = await Promise.all([
+  const [members, policy, approvers, defaults, cur, rates, exclusions, ui, brand, allMembers, teamRows, phoneRows, roleRows, builtinRows] = await Promise.all([
     listMembers(supabase, [company.id], { activeOnly: true }),
     supabase.from("payment_approval_policy").select("company_id").eq("company_id", company.id).maybeSingle(),
     supabase.from("payment_approvers").select("user_id").eq("company_id", company.id),
@@ -36,8 +36,9 @@ export default async function CompanySettingsPage() {
     supabase.from("teams").select("id, name").eq("company_id", company.id).order("name"),
     supabase.from("company_memberships").select("user_id, custom_role_id, profile:profiles!company_memberships_user_id_fkey(phone)").eq("company_id", company.id),
     supabase.from("company_roles").select("id, name, base_role, hidden_nav, permissions").eq("company_id", company.id).order("name"),
+    supabase.from("company_builtin_roles").select("role, hidden_nav, permissions").eq("company_id", company.id),
   ]);
-  for (const r of [policy, approvers, defaults, exclusions, roleRows]) if (r.error) throw r.error;
+  for (const r of [policy, approvers, defaults, exclusions, roleRows, builtinRows]) if (r.error) throw r.error;
   const phoneOf = new Map((phoneRows.data ?? []).map((x) => [x.user_id, x.profile?.phone ?? null]));
   const customRoleOf = new Map((phoneRows.data ?? []).map((x) => [x.user_id, x.custom_role_id]));
   const roleNameOf = new Map((roleRows.data ?? []).map((r) => [r.id, r.name]));
@@ -45,6 +46,10 @@ export default async function CompanySettingsPage() {
     userId: m.userId, name: m.fullName, email: m.email, phone: phoneOf.get(m.userId) ?? null, role: m.role, active: m.isActive && m.profileActive,
     customRoleId: customRoleOf.get(m.userId) ?? null, customRoleName: roleNameOf.get(customRoleOf.get(m.userId) ?? "") ?? null,
   }));
+  const builtinList: BuiltinRoleRow[] = (["company_admin", "sales_manager", "sales_agent", "cs_agent"] as const).map((role) => {
+    const row = (builtinRows.data ?? []).find((b) => b.role === role);
+    return { role, hiddenNav: row?.hidden_nav ?? [], denied: parseDenied(row?.permissions), members: allMembers.filter((m) => m.role === role).length };
+  });
   const roleList: RoleRow[] = (roleRows.data ?? []).map((r) => ({
     id: r.id, name: r.name, base: r.base_role, hiddenNav: r.hidden_nav, denied: parseDenied(r.permissions),
     members: (phoneRows.data ?? []).filter((x) => x.custom_role_id === r.id).length,
@@ -80,7 +85,7 @@ export default async function CompanySettingsPage() {
         <PeopleSection customRoles={roleList.map((r) => ({ id: r.id, name: r.name, base: r.base }))} companyId={company.id} people={accounts} teams={(teamRows.data ?? []).map((x) => ({ value: x.id, label: x.name }))} superAdmin={viewer.isSuperAdmin} viewerId={viewer.id} />
       </Section>
       <Section title={t.roles.title}>
-        <RolesSection companyId={company.id} roles={roleList} />
+        <RolesSection companyId={company.id} roles={roleList} builtins={builtinList} />
       </Section>
       <Section title={c.approversTitle}>
         <div className="p-4">

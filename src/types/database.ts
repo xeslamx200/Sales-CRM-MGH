@@ -181,6 +181,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"company_builtin_roles": {
+                  Row: {
+                    "company_id": string,"hidden_nav": (string)[],"permissions": Json,"role": Database["public"]['Enums']["app_role"],"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"hidden_nav"?: (string)[],"permissions"?: Json,"role": Database["public"]['Enums']["app_role"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "company_id"?: string,"hidden_nav"?: (string)[],"permissions"?: Json,"role"?: Database["public"]['Enums']["app_role"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "company_builtin_roles_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"company_roles": {
                   Row: {
                     "base_role": Database["public"]['Enums']["app_role"],"company_id": string,"created_at": string,"created_by": string | null,"hidden_nav": (string)[],"id": string,"name": string,"permissions": Json,"updated_at": string
@@ -1533,6 +1553,9 @@ isOneToOne: false
                            },
 "report_response_log":
 { Args: { "p_company_id": string,"p_from": string,"p_to": string }; Returns: { "answered_at": string | null,"answered_by": string | null,"answered_by_name": string | null,"asked_at": string,"contact_name": string,"conversation_id": string,"crm_repliers": string | null,"owner_name": string | null,"phone": string | null,"wait_seconds": number }[]
+                           },
+"save_builtin_role":
+{ Args: { "p_company_id": string,"p_hidden_nav": (string)[],"p_permissions": Json,"p_role": Database["public"]['Enums']["app_role"] }; Returns: undefined
                            },
 "save_company_role":
 { Args: { "p_base_role": Database["public"]['Enums']["app_role"],"p_company_id": string,"p_hidden_nav": (string)[],"p_id": string,"p_name": string,"p_permissions": Json }; Returns: string
