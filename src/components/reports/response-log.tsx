@@ -40,7 +40,7 @@ export function ResponseLog({ rows, timeZone }: { rows: ResponseLogRow[]; timeZo
                 <tr key={`${r.conversation_id}-${r.asked_at}`} className="align-middle">
                   <td className="px-3 py-2 text-center">
                     <Link href={`/inbox?c=${r.conversation_id}`} className="font-medium text-primary hover:underline" dir="auto">{r.contact_name}</Link>
-                    {r.phone && r.phone !== r.contact_name && <div className="ltr-nums text-xs text-muted-foreground">{r.phone}</div>}
+                    {r.phone && r.phone.replace(/\D/g, "") !== r.contact_name.replace(/\D/g, "") && <div className="ltr-nums text-xs text-muted-foreground">{r.phone}</div>}
                   </td>
                   <td className="ltr-nums whitespace-nowrap px-3 py-2 text-center">{formatDateTime(r.asked_at, timeZone, locale)}</td>
                   <td className="ltr-nums whitespace-nowrap px-3 py-2 text-center">
