@@ -68,7 +68,7 @@ export async function markConversationRead(input: z.input<typeof readSchema>): P
   return runAction(readSchema, input, async ({ conversationId }) => {
     const supabase = await createClient();
     check(await supabase.from("conversations").update({ unread_count: 0 }).eq("id", conversationId).gt("unread_count", 0));
-    revalidatePath("/", "layout");
+    // no revalidatePath here: it re-rendered the whole inbox after every conversation opened; the live check (InboxLive) picks the new counters up
     return null;
   });
 }
@@ -116,5 +116,16 @@ export async function addNote(input: z.input<typeof noteSchema>): Promise<Action
     check(await supabase.from("conversation_notes").insert({ conversation_id: conversationId, body, author_id: viewer.id }));
     revalidatePath("/inbox");
     return null;
+  });
+}
+
+/** "Mark all as read": clears the unread counter of every conversation this person can see in the given companies (RLS decides; clearing is the only change allowed). */
+export async function markAllConversationsRead(input: { companyIds: string[] }): Promise<ActionResult<{ cleared: number }>> {
+  return runAction(z.object({ companyIds: z.array(z.uuid()).min(1).max(20) }), input, async ({ companyIds }) => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("conversations").update({ unread_count: 0 }).in("company_id", companyIds).gt("unread_count", 0).select("id");
+    if (error) throw error;
+    revalidatePath("/inbox");
+    return { cleared: (data ?? []).length };
   });
 }

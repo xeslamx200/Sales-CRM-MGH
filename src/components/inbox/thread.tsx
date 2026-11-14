@@ -44,7 +44,6 @@ type Conversation = {
   bsuidOnly: boolean;
 };
 
-const POLL_MS = 15_000;
 const UNASSIGN = "__none__";
 
 function StatusIcon({ status }: { status: Enums<"message_status"> }) {
@@ -80,14 +79,10 @@ export function ConversationThread({
   const requestId = useRef<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
-  // Opening a conversation clears its unread counter; new messages arrive by polling.
+  // Opening a conversation clears its unread counter; new messages arrive through InboxLive (a tiny check that refreshes the page only when something changed).
   useEffect(() => {
     if (c.unread > 0) void markConversationRead({ conversationId: c.id });
   }, [c.id, c.unread]);
-  useEffect(() => {
-    const id = setInterval(() => router.refresh(), POLL_MS);
-    return () => clearInterval(id);
-  }, [router]);
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
   }, [messages.length, notes.length]);

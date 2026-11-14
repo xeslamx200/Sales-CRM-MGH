@@ -7,6 +7,7 @@ import { StatusBadge, toneFor } from "@/components/app/status-badge";
 import { ConversationThread, type ThreadMessage, type ThreadNote } from "@/components/inbox/thread";
 import { Initials } from "@/components/inbox/initials";
 import { InboxLive } from "@/components/inbox/live";
+import { MarkAllRead } from "@/components/inbox/mark-all-read";
 import type { LeadPanelData } from "@/components/inbox/lead-panel";
 import { getViewer, isManagerOf } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
@@ -205,7 +206,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
           <h1 className="text-xl font-semibold">{t.nav.inbox}</h1>
           <p className="text-xs text-muted-foreground">{t.inbox.subtitle}</p>
         </div>
-        <div className="ms-auto"><InboxLive /></div>
+        <div className="ms-auto flex items-center gap-2"><MarkAllRead companyIds={viewer.scopeCompanyIds} /><InboxLive /></div>
       </div>
       <div className={cn("flex flex-wrap gap-2", selectedId && "max-lg:hidden")} role="tablist" aria-label={t.common.status}>
         {pills.map((p) => (
