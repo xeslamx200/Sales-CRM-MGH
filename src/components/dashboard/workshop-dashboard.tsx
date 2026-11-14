@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Banknote, ShoppingBag, UserPlus, Wallet } from "lucide-react";
 import { PeriodPicker } from "@/components/reports/period-picker";
 import { StatTile } from "@/components/dashboard/stat-tile";
-import { RevenueHero, type HeroPoint } from "@/components/dashboard/revenue-hero";
+import type { HeroPoint } from "@/components/dashboard/revenue-hero";
+import { LazyRevenueHero } from "@/components/charts/lazy";
 import { GoalCard, LatestBookingsCard, TopWorkshopsCard, WorkshopShareCard } from "@/components/dashboard/side-cards";
 import type { DashboardData } from "@/server/dashboard-data";
 import type { Dictionary, Locale } from "@/i18n";
@@ -98,7 +99,7 @@ export function WorkshopDashboard({ data, t, locale, now, hidden = [] }: { data:
           delta={deltaPct(avg, prevAvg)} locale={locale} icon={Banknote} values={bookedSpark} />
       </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]">
-        {!show("revenue_chart") ? <div className="hidden xl:block" /> : P ? <RevenueHero points={points} currency={P} total={cur?.collected ?? 0} delta={deltaPct(cur?.collected ?? 0, prevCur?.collected ?? 0)} title={d.revenue} currencyNote={otherNote} />
+        {!show("revenue_chart") ? <div className="hidden xl:block" /> : P ? <LazyRevenueHero points={points} currency={P} total={cur?.collected ?? 0} delta={deltaPct(cur?.collected ?? 0, prevCur?.collected ?? 0)} title={d.revenue} currencyNote={otherNote} />
           : <div className="rounded-2xl bg-card p-6 text-sm text-muted-foreground ring-1 ring-foreground/5">{t.workshopDash.noBookings}</div>}
         <div className="flex min-w-0 flex-col gap-4">
           {show("workshop_share") && <WorkshopShareCard rows={share} allIds={allIds} currency={P} t={t} locale={locale} />}

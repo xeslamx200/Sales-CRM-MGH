@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import type { ActionResult } from "@/types/action";
 import { useI18n } from "@/components/i18n-provider";
+import { useZodLocale } from "@/components/form/zod-locale";
 
 type Options<In extends FieldValues, Out, T> = {
   schema: z.ZodType<Out, In>;
@@ -22,6 +23,7 @@ type Options<In extends FieldValues, Out, T> = {
  */
 export function useActionForm<In extends FieldValues, Out, T = null>(opts: Options<In, Out, T>) {
   const { t } = useI18n();
+  useZodLocale();
   const form = useForm<In, unknown, Out>({
     resolver: zodResolver(opts.schema),
     defaultValues: opts.defaultValues,

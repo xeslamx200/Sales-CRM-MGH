@@ -1,6 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect } from "react";
-import { z } from "zod";
+import { createContext, useContext } from "react";
 import type { Dictionary, Locale } from "@/i18n";
 
 type I18n = { locale: Locale; dir: "rtl" | "ltr"; t: Dictionary };
@@ -8,10 +7,7 @@ type I18n = { locale: Locale; dir: "rtl" | "ltr"; t: Dictionary };
 const I18nContext = createContext<I18n | null>(null);
 
 export function I18nProvider({ value, children }: { value: I18n; children: React.ReactNode }) {
-  // Client-side validation messages follow the UI language.
-  useEffect(() => {
-    z.config(value.locale === "ar" ? z.locales.ar() : z.locales.en());
-  }, [value.locale]);
+  // (zod's language is set by the forms themselves, see useZodLocale: importing zod here put it - with every locale - into every page)
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

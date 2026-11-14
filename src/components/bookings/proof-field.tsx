@@ -50,7 +50,7 @@ export async function uploadProof(paymentId: string, file: File): Promise<boolea
   try {
     const prep = await prepareAttachment({ entityType: "payment", entityId: paymentId, mimeType: file.type, size: file.size });
     if (!prep.ok) return false;
-    const up = await createBrowserSupabase().storage.from("attachments").uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: file.type });
+    const up = await (await createBrowserSupabase()).storage.from("attachments").uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: file.type });
     if (up.error) return false;
     const fin = await finalizeAttachmentUpload({ entityType: "payment", entityId: paymentId, path: prep.data.path, fileName: file.name, mimeType: file.type });
     return fin.ok;

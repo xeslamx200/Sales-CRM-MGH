@@ -8,7 +8,8 @@ import { EmptyState } from "@/components/app/states";
 import { FilterBar } from "@/components/app/filter-bar";
 import { PeriodPicker } from "@/components/reports/period-picker";
 import { KpiComparison, KpiTiles, type KpiRow } from "@/components/reports/kpis";
-import { LeadsPerDayChart, type LeadsDayRow } from "@/components/reports/leads-per-day-chart";
+import type { LeadsDayRow } from "@/components/reports/leads-per-day-chart";
+import { LazyLeadsPerDayChart } from "@/components/charts/lazy";
 import { ResponseSpeedTiles, SpeedDailyTable, type SpeedRow } from "@/components/reports/response-speed";
 import { ResponseLog, type ResponseLogRow } from "@/components/reports/response-log";
 import { TargetProgress, type TargetRow } from "@/components/reports/targets";
@@ -251,7 +252,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
           <p className="mb-2 text-xs text-muted-foreground">{t.reports.speed.logHint}</p>
           <ResponseLog rows={(wn.data ?? []) as ResponseLogRow[]} timeZone={tz} />
         </Section>
-        <Section title={t.reports.leadsPerDay}><LeadsPerDayChart rows={(ld.data ?? []) as LeadsDayRow[]} /></Section>
+        <Section title={t.reports.leadsPerDay}><LazyLeadsPerDayChart rows={(ld.data ?? []) as LeadsDayRow[]} /></Section>
         <Section title={t.reports.speed.title}>
           <ResponseSpeedTiles overall={speed.find((r) => r.day === null)} t={t} locale={locale} />
           <p className="mt-2 text-xs text-muted-foreground">{t.reports.speed.note}</p>

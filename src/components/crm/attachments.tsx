@@ -32,7 +32,7 @@ export function AttachmentUpload({ entityType, entityId }: { entityType: Attachm
       if (file.size > ATTACHMENT_MAX_BYTES) return void toast.error(t.attachments.tooLarge);
       const prep = await prepareAttachment({ entityType, entityId, mimeType: file.type, size: file.size });
       if (!prep.ok) return void toast.error(prep.error);
-      const { error } = await createBrowserSupabase().storage.from("attachments")
+      const { error } = await (await createBrowserSupabase()).storage.from("attachments")
         .uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: file.type });
       if (error) return void toast.error(t.attachments.uploadFailed);
       const res = await finalizeAttachmentUpload({ entityType, entityId, path: prep.data.path, fileName: file.name, mimeType: file.type });

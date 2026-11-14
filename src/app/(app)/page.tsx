@@ -3,8 +3,9 @@ import { PageHeader, Section } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { PeriodPicker } from "@/components/reports/period-picker";
 import { KpiComparison, KpiTiles, type KpiRow } from "@/components/reports/kpis";
-import { DailyCharts, type DailyRow } from "@/components/reports/daily-charts";
-import { LeadsPerDayChart, type LeadsDayRow } from "@/components/reports/leads-per-day-chart";
+import type { DailyRow } from "@/components/reports/daily-charts";
+import type { LeadsDayRow } from "@/components/reports/leads-per-day-chart";
+import { LazyDailyCharts, LazyLeadsPerDayChart } from "@/components/charts/lazy";
 import { ResponseSpeedTiles, WaitingNow, type SpeedRow, type WaitingRow } from "@/components/reports/response-speed";
 import { TargetProgress, type TargetRow } from "@/components/reports/targets";
 import { DashboardHeader, WorkshopDashboard } from "@/components/dashboard/workshop-dashboard";
@@ -114,7 +115,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
       {company && (
         <>
           {widget("leads_per_day") && <Section title={t.reports.leadsPerDay}>
-            <LeadsPerDayChart rows={leadsDaily} />
+            <LazyLeadsPerDayChart rows={leadsDaily} />
           </Section>}
           {widget("response_speed") && <Section title={t.reports.speed.title} actions={<Link href="/reports?tab=whatsapp" className="text-xs text-primary hover:underline">{t.reports.tabs.whatsapp}</Link>}>
             <ResponseSpeedTiles overall={speed.find((r) => r.day === null)} t={t} locale={locale} />
@@ -123,7 +124,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
           </Section>}
           {!workshopMode && (
             <Section title={t.reports.trend}>
-              <DailyCharts rows={daily} />
+              <LazyDailyCharts rows={daily} />
             </Section>
           )}
           <div className="grid gap-4 lg:grid-cols-2">

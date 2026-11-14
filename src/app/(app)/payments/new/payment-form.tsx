@@ -46,7 +46,7 @@ export function PaymentForm({ workshops, rates, today }: { workshops: WorkshopOp
     try {
       const prep = await prepareAttachment({ entityType: "payment", entityId: paymentId, mimeType: file.type, size: file.size });
       if (!prep.ok) throw new Error(prep.error);
-      const up = await createBrowserSupabase().storage.from("attachments").uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: file.type });
+      const up = await (await createBrowserSupabase()).storage.from("attachments").uploadToSignedUrl(prep.data.path, prep.data.token, file, { contentType: file.type });
       if (up.error) throw up.error;
       const fin = await finalizeAttachmentUpload({ entityType: "payment", entityId: paymentId, path: prep.data.path, fileName: file.name, mimeType: file.type });
       if (!fin.ok) throw new Error(fin.error);
