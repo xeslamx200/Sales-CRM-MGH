@@ -25,6 +25,16 @@ select tests.eq((select phone from log where contact_name = 'Waits Today'), '+97
 select tests.ok((select wait_seconds from log where contact_name = 'Waits Today') between 7100 and 7400, 'a waiting turn counts up to now (about 2 hours)');
 select tests.ok((select wait_seconds from log where contact_name = 'Answered In CRM') between 550 and 650, 'an answered turn: the time to the first answer (10 minutes)');
 select tests.ok((select asked_at from log where contact_name = 'Answered On Phone') < (select asked_at from log where contact_name = 'Answered In CRM'), 'the turn starts at the FIRST of two customer messages in a row');
+-- who replied in the CRM: a phone reply first, then two employees answer later in the same turn
+select tests.logout();
+insert into public.messages (conversation_id, direction, message_type, body, status, sent_by, sent_at) values (tests.ref('rl3'), 'outbound', 'text', 'a', 'sent', tests.uid('agent_a1'), now() - interval '2 hours 30 minutes');
+insert into public.messages (conversation_id, direction, message_type, body, status, sent_by, sent_at) values (tests.ref('rl3'), 'outbound', 'text', 'b', 'sent', tests.uid('mgr_a'), now() - interval '2 hours');
+insert into public.messages (conversation_id, direction, message_type, body, status, sent_by, sent_at) values (tests.ref('rl3'), 'outbound', 'text', 'again', 'sent', tests.uid('agent_a1'), now() - interval '1 hour');
+select tests.login('admin_a');
+select tests.eq((select answered_by from public.report_response_log(tests.ref('alpha'), (now() - interval '1 day')::date, (now() + interval '1 day')::date) where contact_name = 'Answered On Phone'), 'phone', 'the FIRST answer was still from the phone');
+select tests.eq((select crm_repliers from public.report_response_log(tests.ref('alpha'), (now() - interval '1 day')::date, (now() + interval '1 day')::date) where contact_name = 'Answered On Phone'),
+  (select full_name from public.profiles where id = tests.uid('agent_a1')) || ', ' || (select full_name from public.profiles where id = tests.uid('mgr_a')), 'the CRM employees who replied later are named, once each, in the order they first replied');
+select tests.ok((select crm_repliers from public.report_response_log(tests.ref('alpha'), (now() - interval '1 day')::date, (now() + interval '1 day')::date) where contact_name = 'Waits Today') is null, 'nobody replied: no names');
 select tests.logout();
 select tests.login('outsider');
 select tests.throws(format($q$select * from public.report_response_log(%L::uuid, current_date - 1, current_date)$q$, tests.ref('alpha')), 'auth.forbidden', 'outsiders are refused');

@@ -9,7 +9,7 @@ import { formatDateTime, formatDuration } from "@/lib/format.ts";
 /** Rows of public.report_response_log (nothing is recomputed here). */
 export type ResponseLogRow = {
   conversation_id: string; contact_name: string; phone: string | null; asked_at: string; answered_at: string | null;
-  answered_by: "crm" | "phone" | null; answered_by_name: string | null; wait_seconds: number; owner_name: string | null;
+  answered_by: "crm" | "phone" | null; answered_by_name: string | null; wait_seconds: number; owner_name: string | null; crm_repliers: string | null;
 };
 
 /** Who wrote in the period, when they wrote, when (and from where) they were first answered; those still waiting come first. */
@@ -20,7 +20,7 @@ export function ResponseLog({ rows, timeZone }: { rows: ResponseLogRow[]; timeZo
   const waiting = rows.filter((r) => r.answered_at === null).length;
   const shown = rows.filter((r) => filter === "all" || (filter === "waiting") === (r.answered_at === null));
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">{s.logEmpty}</p>;
-  const heads = [s.logCustomer, s.logSent, s.logFirstReply, s.logFrom, s.logWait];
+  const heads = [s.logCustomer, s.logSent, s.logFirstReply, s.logFrom, s.logCrmRepliers, s.logOwner, s.logWait];
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2" role="group">
@@ -47,9 +47,10 @@ export function ResponseLog({ rows, timeZone }: { rows: ResponseLogRow[]; timeZo
                     {r.answered_at ? formatDateTime(r.answered_at, timeZone, locale) : <StatusBadge tone="warning">{s.logStillWaiting}</StatusBadge>}
                   </td>
                   <td className="px-3 py-2 text-center">
-                    {r.answered_by === "crm" ? <span>{s.logFromCrm}{r.answered_by_name ? <span className="text-muted-foreground"> · {r.answered_by_name}</span> : null}</span>
-                      : r.answered_by === "phone" ? <span>{s.logFromPhone}</span> : "—"}
+                    {r.answered_by === "crm" ? <span>{s.logFromCrm}</span> : r.answered_by === "phone" ? <span>{s.logFromPhone}</span> : "—"}
                   </td>
+                  <td className="px-3 py-2 text-center" dir="auto">{r.crm_repliers ?? (r.answered_by === "phone" ? <span className="text-muted-foreground">{s.logNoCrmReply}</span> : "—")}</td>
+                  <td className="px-3 py-2 text-center" dir="auto">{r.owner_name ?? <span className="text-muted-foreground">{s.logUnassigned}</span>}</td>
                   <td className="ltr-nums whitespace-nowrap px-3 py-2 text-center">{formatDuration(r.wait_seconds, locale)}</td>
                 </tr>
               ))}
