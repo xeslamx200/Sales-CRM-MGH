@@ -181,16 +181,36 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"company_memberships": {
+                },"company_roles": {
                   Row: {
-                    "company_id": string,"created_at": string,"created_by": string | null,"id": string,"is_active": boolean,"role": Database["public"]['Enums']["app_role"],"updated_at": string,"user_id": string
+                    "base_role": Database["public"]['Enums']["app_role"],"company_id": string,"created_at": string,"created_by": string | null,"hidden_nav": (string)[],"id": string,"name": string,"permissions": Json,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "company_id": string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"is_active"?: boolean,"role": Database["public"]['Enums']["app_role"],"updated_at"?: string,"user_id": string
+                    "base_role": Database["public"]['Enums']["app_role"],"company_id": string,"created_at"?: string,"created_by"?: string | null,"hidden_nav"?: (string)[],"id"?: string,"name": string,"permissions"?: Json,"updated_at"?: string
                   }
                   Update: {
-                    "company_id"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"is_active"?: boolean,"role"?: Database["public"]['Enums']["app_role"],"updated_at"?: string,"user_id"?: string
+                    "base_role"?: Database["public"]['Enums']["app_role"],"company_id"?: string,"created_at"?: string,"created_by"?: string | null,"hidden_nav"?: (string)[],"id"?: string,"name"?: string,"permissions"?: Json,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "company_roles_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"company_memberships": {
+                  Row: {
+                    "company_id": string,"created_at": string,"created_by": string | null,"custom_role_id": string | null,"id": string,"is_active": boolean,"role": Database["public"]['Enums']["app_role"],"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"created_by"?: string | null,"custom_role_id"?: string | null,"id"?: string,"is_active"?: boolean,"role": Database["public"]['Enums']["app_role"],"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"created_by"?: string | null,"custom_role_id"?: string | null,"id"?: string,"is_active"?: boolean,"role"?: Database["public"]['Enums']["app_role"],"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -198,6 +218,12 @@ isOneToOne: false
       columns: ["company_id"]
 isOneToOne: false
       referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "company_memberships_custom_role_id_fkey"
+      columns: ["custom_role_id"]
+isOneToOne: false
+      referencedRelation: "company_roles"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "company_memberships_created_by_fkey"
@@ -1507,6 +1533,12 @@ isOneToOne: false
                            },
 "report_response_log":
 { Args: { "p_company_id": string,"p_from": string,"p_to": string }; Returns: { "answered_at": string | null,"answered_by": string | null,"answered_by_name": string | null,"asked_at": string,"contact_name": string,"conversation_id": string,"owner_name": string | null,"phone": string | null,"wait_seconds": number }[]
+                           },
+"save_company_role":
+{ Args: { "p_base_role": Database["public"]['Enums']["app_role"],"p_company_id": string,"p_hidden_nav": (string)[],"p_id": string,"p_name": string,"p_permissions": Json }; Returns: string
+                           },
+"delete_company_role":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "set_offering_order":
 { Args: { "p_company_id": string,"p_ids": (string)[] }; Returns: number

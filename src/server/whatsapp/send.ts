@@ -3,6 +3,7 @@ import { createClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
 import { serverEnv } from "@/server/env";
 import { AppError } from "@/server/action";
+import { requirePermission } from "@/server/auth/permissions";
 import { backoffMs, sendTextMessage, type SendResult } from "@/lib/whatsapp/cloud-api.ts";
 import { OUTBOUND_MEDIA, isCredentialError, sendMediaMessage, sendTemplateMessage, uploadMedia } from "@/lib/whatsapp/graph.ts";
 import { isRecipientAllowed, parseSendAllowlist, sendKapsoMedia, sendKapsoText, uploadKapsoMedia, type KapsoSendResult } from "@/lib/kapso/send.ts";
@@ -34,9 +35,10 @@ export async function sendOutbound(conversationId: string, clientRequestId: stri
   const supabase = await createClient();
   await limitUser(supabase, "send_message");
   const { data: conv } = await supabase.from("conversations")
-    .select("id, customer_wa_id, customer_bsuid, account:whatsapp_accounts!conversations_whatsapp_account_id_fkey(id, is_simulated, provider)")
+    .select("id, company_id, customer_wa_id, customer_bsuid, account:whatsapp_accounts!conversations_whatsapp_account_id_fkey(id, is_simulated, provider)")
     .eq("id", conversationId).maybeSingle();
   if (!conv || !conv.account) throw new AppError("conversation.not_found");
+  await requirePermission(conv.company_id, "send_messages");   // a custom role can switch sending off
   const viaKapso = conv.account.provider === "kapso" && !conv.account.is_simulated;
   // A customer known only by BSUID has no phone (never derived from the BSUID). Only text and files through a Kapso account may go to the BSUID itself;
   // anything else (templates) is refused here and by the database.

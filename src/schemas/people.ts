@@ -7,6 +7,7 @@ const phone = z.string().trim().max(30).nullable().or(z.literal("").transform(()
 const fullName = z.string().trim().min(1).max(200);
 const email = z.string().trim().toLowerCase().email().max(320);
 const password = z.string().min(MIN_PASSWORD).max(200);
+const customRoleId = z.uuid().nullable().or(z.literal("").transform(() => null));
 
 /** A company admin creates the account of a person: e-mail, password, name, phone, role and (optionally) team. */
 export const createPersonSchema = z.object({
@@ -15,6 +16,7 @@ export const createPersonSchema = z.object({
   email,
   phone,
   role: z.enum(roles),
+  customRoleId,
   password,
   teamId: z.uuid().nullable().or(z.literal("").transform(() => null)),
 });
@@ -26,6 +28,7 @@ export const updatePersonSchema = z.object({
   email,
   phone,
   role: z.enum(roles),
+  customRoleId,
   isActive: z.boolean(),
 });
 

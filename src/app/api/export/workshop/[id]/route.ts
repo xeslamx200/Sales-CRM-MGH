@@ -1,3 +1,4 @@
+import { can, getViewer } from "@/server/auth/viewer";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/server/supabase/server";
 import { requestI18n } from "@/server/i18n";
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/export/works
   if (!auth?.claims?.sub) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: off } = await supabase.from("company_offerings").select("id, name, company_id").eq("id", id).maybeSingle();
   if (!off) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!can(await getViewer(), off.company_id, "export_data")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const { data: company } = await supabase.from("companies").select("timezone").eq("id", off.company_id).maybeSingle();
   const { data, error } = await supabase.rpc("workshop_bookings_list", { p_offering_id: id, p_group_id: group && UUID.test(group) ? group : undefined });
   if (error) return NextResponse.json({ error: "forbidden" }, { status: 403 });

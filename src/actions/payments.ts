@@ -3,6 +3,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/supabase/server";
 import { AppError, check, must, runAction, type ActionResult } from "@/server/action";
+import { requirePermission } from "@/server/auth/permissions";
 import { limitUser } from "@/server/rate-limit";
 import { normalizePhone } from "@/lib/phone.ts";
 import { balanceSchema, paymentSchema, reviewSchema, searchSchema, type PaymentInput, type ReviewInput } from "@/schemas/payments";
@@ -51,6 +52,7 @@ export async function savePayment(input: PaymentInput): Promise<ActionResult<{ p
     await limitUser(supabase, "payment");
     const off = check(await supabase.from("company_offerings").select("company_id").eq("id", d.offeringId).maybeSingle());
     if (!off) throw new AppError("payment.offering_not_found");
+    await requirePermission(off.company_id, "record_payments");
     let contactId = d.contactId;
     if (!contactId) {
       const { data: company } = await supabase.from("companies").select("timezone").eq("id", off.company_id).maybeSingle();

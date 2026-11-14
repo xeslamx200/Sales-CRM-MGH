@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/server/supabase/server";
-import { getViewer } from "@/server/auth/viewer";
+import { can, getViewer } from "@/server/auth/viewer";
 import { leadsQuery, matchingContactIds } from "@/server/data/leads";
 import { todayBounds } from "@/server/crm";
 import { toCsv } from "@/lib/csv.ts";
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   const today = todayBounds(tz);
   const q = sp.get("q")?.slice(0, 100) ?? null;
   const filters = {
-    companyIds: viewer.scopeCompanyIds,
+    companyIds: viewer.scopeCompanyIds.filter((id) => can(viewer, id, "export_data")),   // a custom role can switch exporting off
     q,
     status: pick("status", E.lead_status),
     source: pick("source", E.lead_source),

@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/supabase/server";
 import { check, must, runAction, type ActionResult } from "@/server/action";
+import { requirePermission } from "@/server/auth/permissions";
 import { limitUser } from "@/server/rate-limit";
 import { requestLocale } from "@/server/i18n";
 import { errorKey, userMessage } from "@/lib/errors.ts";
@@ -41,6 +42,8 @@ export async function workshopOptions(input: z.input<typeof workshopOptionsSchem
 export async function createBooking(input: BookingInput): Promise<ActionResult<{ bookingId: string; paymentId: string | null; paymentError: string | null }>> {
   return runAction(bookingSchema, input, async (d) => {
     const supabase = await createClient();
+    const grp = check(await supabase.from("workshop_groups").select("company_id").eq("id", d.groupId).maybeSingle());
+    await requirePermission(grp?.company_id, "create_bookings");
     const id = must(await supabase.rpc("create_workshop_booking", {
       p_contact_id: d.contactId, p_group_id: d.groupId, p_country: d.country, p_attendance: d.attendance,
       p_discount_type: d.discountType, p_discount_value: d.discountValue ?? 0, p_discount_reason: d.discountReason ?? undefined, p_note: d.note ?? undefined,
@@ -75,6 +78,8 @@ export async function cancelBooking(input: CancelBookingInput): Promise<ActionRe
 export async function recordBookingPayment(input: BookingPaymentInput): Promise<ActionResult<{ paymentId: string }>> {
   return runAction(bookingPaymentSchema, input, async (d) => {
     const supabase = await createClient();
+    const bk = check(await supabase.from("workshop_bookings").select("company_id").eq("id", d.bookingId).maybeSingle());
+    await requirePermission(bk?.company_id, "record_payments");
     await limitUser(supabase, "payment");
     const id = must(await supabase.rpc("record_booking_payment", { p_booking_id: d.bookingId, p_amount: d.amount, p_paid_on: d.paidOn ?? undefined, p_note: d.note ?? undefined }));
     revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/payments"); revalidatePath("/customer-payments");

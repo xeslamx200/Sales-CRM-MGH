@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/supabase/server";
 import { runAction, check, must, type ActionResult } from "@/server/action";
 import { getViewer } from "@/server/auth/viewer";
+import { requirePermission } from "@/server/auth/permissions";
 import { companyTz, localToUtc, phoneOrNull, recordCompany } from "@/server/crm";
 import {
   archiveSchema, assignSchema, leadCreateSchema, leadInterestSchema, leadOfferingSchema, leadStatusSchema,
@@ -18,6 +19,7 @@ export async function createLead(
   input: z.input<typeof leadCreateSchema>,
 ): Promise<ActionResult<{ leadId: string; matchedExisting: boolean; openLeads: number }>> {
   return runAction(leadCreateSchema, input, async (d) => {
+    await requirePermission(d.companyId, "create_leads");
     const viewer = await getViewer();
     const supabase = await createClient();
     const [contact] = must(await supabase.rpc("find_or_create_contact", {

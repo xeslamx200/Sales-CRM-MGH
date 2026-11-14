@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/supabase/server";
 import { runAction, check, must, AppError, type ActionResult } from "@/server/action";
 import { getViewer } from "@/server/auth/viewer";
+import { requirePermission } from "@/server/auth/permissions";
 import { sendReply, type SendOutcome } from "@/server/whatsapp/send";
 import { Constants } from "@/types/database";
 
@@ -94,6 +95,8 @@ const leadFromConversationSchema = z.object({ conversationId: z.uuid() });
 export async function leadFromConversation(input: z.input<typeof leadFromConversationSchema>): Promise<ActionResult<{ leadId: string; created: boolean }>> {
   return runAction(leadFromConversationSchema, input, async ({ conversationId }) => {
     const supabase = await createClient();
+    const conv = check(await supabase.from("conversations").select("company_id").eq("id", conversationId).maybeSingle());
+    await requirePermission(conv?.company_id, "create_leads");
     // One atomic, idempotent database call: repeated clicks, or a click racing the
     // automatic intake, return the existing lead. created_by is set by the database.
     const rows = must(await supabase.rpc("lead_from_conversation", { p_conversation_id: conversationId }));

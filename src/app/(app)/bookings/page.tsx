@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/app/status-badge";
 import { BookingsTable, DiscBadge, type BookingRow } from "@/components/bookings/bookings-table";
 import { ApproveDiscountDialog, RejectDiscountDialog } from "@/components/bookings/booking-actions";
 import { SectionTabs } from "@/components/bookings/section-tabs";
-import { getViewer } from "@/server/auth/viewer";
+import { can, getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { oneOf, str, uuid } from "@/lib/search-params";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format.ts";
@@ -31,7 +31,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/booking
   const header = (
     <>
       <PageHeader title={t.nav.bookings} description={b.oneFlowHint}
-        actions={company && <Button asChild><Link href="/bookings/new"><Plus />{b.newBookingPayment}</Link></Button>} />
+        actions={company && can(viewer, company.id, "create_bookings") && <Button asChild><Link href="/bookings/new"><Plus />{b.newBookingPayment}</Link></Button>} />
       <SectionTabs active={tab === "approvals" ? "approvals" : "bookings"} t={t} />
     </>
   );
@@ -116,10 +116,10 @@ export default async function BookingsPage({ searchParams }: PageProps<"/booking
   return (
     <>
       {header}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      {(!company || can(viewer, company.id, "export_data")) && <div className="flex flex-wrap items-center justify-end gap-2">
         <Button asChild variant="outline" size="sm"><a href={`/api/export/customer-payments?${qs}&format=csv`}><Download />{b.exportCsv}</a></Button>
         <Button asChild variant="outline" size="sm"><a href={`/api/export/customer-payments?${qs}&format=xlsx`}><FileSpreadsheet />{b.exportExcel}</a></Button>
-      </div>
+      </div>}
       <FilterBar filters={[
         { type: "search", name: "customer", placeholder: b.customerSearch },
         { type: "select", name: "offering", label: b.filterWorkshop, allLabel: b.allWorkshops, options: (offs.data ?? []).map((o) => ({ value: o.id, label: o.name })) },

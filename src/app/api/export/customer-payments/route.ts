@@ -1,3 +1,4 @@
+import { can, getViewer } from "@/server/auth/viewer";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/server/supabase/server";
 import { requestI18n } from "@/server/i18n";
@@ -18,6 +19,7 @@ export async function GET(req: NextRequest) {
   // local check of the session token (signature + expiry); RLS and the database functions decide what may be read
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims?.sub) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!can(await getViewer(), company, "export_data")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const { data: co } = await supabase.from("companies").select("name, timezone").eq("id", company).maybeSingle();
   if (!co) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const { data, error } = await supabase.rpc("customer_payment_rows", {

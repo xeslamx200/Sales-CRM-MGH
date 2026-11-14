@@ -9,7 +9,7 @@ import { Initials } from "@/components/inbox/initials";
 import { InboxLive } from "@/components/inbox/live";
 import { MarkAllRead } from "@/components/inbox/mark-all-read";
 import type { LeadPanelData } from "@/components/inbox/lead-panel";
-import { getViewer, isManagerOf } from "@/server/auth/viewer";
+import { can, getViewer, isManagerOf } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { matchingContactIds } from "@/server/data/leads";
 import { isWithinHours } from "@/server/crm";
@@ -131,7 +131,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
       // Informational only: queue_outbound_message enforces the 24-hour rule.
       const windowOpen = isWithinHours(conv.last_inbound_at, 24);
       const manager = isManagerOf(viewer, conv.company_id);
-      const canReply = viewer.isSuperAdmin || Boolean(grant.data?.can_reply);
+      const canReply = (viewer.isSuperAdmin || Boolean(grant.data?.can_reply)) && can(viewer, conv.company_id, "send_messages");
       threadIsOpen = true;
       thread = (
         <ConversationThread

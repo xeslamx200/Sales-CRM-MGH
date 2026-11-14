@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/supabase/server";
 import { runAction, check, AppError, type ActionResult } from "@/server/action";
 import { getViewer } from "@/server/auth/viewer";
+import { requirePermission } from "@/server/auth/permissions";
 import { listMembers } from "@/server/data/members";
 import { parseCsv, toCsv, MAX_IMPORT_BYTES, MAX_IMPORT_ROWS } from "@/lib/csv.ts";
 import {
@@ -42,6 +43,7 @@ async function validate(companyId: string, csv: string, action: "import_preview"
   const viewer = await getViewer();
   await limitUser(await createClient(), action);
   if (!viewer.companies.some((c) => c.id === companyId)) throw new AppError("auth.forbidden");
+  await requirePermission(companyId, "import_leads");
   const parsed = parseCsv(csv, { maxRows: MAX_IMPORT_ROWS, maxBytes: MAX_IMPORT_BYTES });
   if (!parsed.ok) throw new AppError(`csv.${parsed.error}`);
   const supabase = await createClient();

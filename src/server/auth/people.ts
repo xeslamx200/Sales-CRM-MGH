@@ -51,7 +51,7 @@ async function audit(ctx: Ctx, companyId: string, action: string, userId: string
 const emailTaken = (m: string | undefined) => /already|registered|exists|duplicate/i.test(m ?? "");
 
 export async function createPerson(input: {
-  companyId: string; fullName: string; email: string; phone: string | null; role: Role; password: string; teamId: string | null;
+  companyId: string; fullName: string; email: string; phone: string | null; role: Role; customRoleId: string | null; password: string; teamId: string | null;
 }): Promise<{ createdAccount: boolean }> {
   const ctx = await authorize(input.companyId);
   if (input.role === "company_admin" && !ctx.superAdmin) throw new AppError("membership.cannot_manage_company_admin");
@@ -75,18 +75,18 @@ export async function createPerson(input: {
   }
   if (!userId) throw new AppError("people.create_failed");
 
-  const ins = await ctx.supabase.from("company_memberships").insert({ company_id: input.companyId, user_id: userId, role: input.role });
+  const ins = await ctx.supabase.from("company_memberships").insert({ company_id: input.companyId, user_id: userId, role: input.role, custom_role_id: input.customRoleId });   // the database sets role = the custom role's base role
   if (ins.error) {
     if (created) await admin.auth.admin.deleteUser(userId).catch(() => undefined);   // no orphan account when the membership is refused
     check(ins);
   }
   if (input.teamId) check(await ctx.supabase.from("team_memberships").insert({ team_id: input.teamId, company_id: input.companyId, user_id: userId }));
-  await audit(ctx, input.companyId, created ? "user.created_by_admin" : "user.attached_by_admin", userId, { role: input.role });
+  await audit(ctx, input.companyId, created ? "user.created_by_admin" : "user.attached_by_admin", userId, { role: input.role, custom_role_id: input.customRoleId });
   return { createdAccount: created };
 }
 
 export async function updatePerson(input: {
-  companyId: string; userId: string; fullName: string; email: string; phone: string | null; role: Role; isActive: boolean;
+  companyId: string; userId: string; fullName: string; email: string; phone: string | null; role: Role; customRoleId: string | null; isActive: boolean;
 }): Promise<void> {
   const ctx = await authorize(input.companyId);
   const target = await loadTarget(ctx, input.companyId, input.userId);
@@ -100,7 +100,7 @@ export async function updatePerson(input: {
   }
   const { error: pe } = await target.admin.from("profiles").update({ full_name: input.fullName, phone: input.phone }).eq("id", input.userId);
   if (pe) throw new AppError("people.update_failed");
-  check(await ctx.supabase.from("company_memberships").update({ role: input.role, is_active: input.isActive }).eq("id", target.membershipId).select("id").single());
+  check(await ctx.supabase.from("company_memberships").update({ role: input.role, custom_role_id: input.customRoleId, is_active: input.isActive }).eq("id", target.membershipId).select("id").single());
   await audit(ctx, input.companyId, "user.updated_by_admin", input.userId, { role: input.role, active: input.isActive });
 }
 

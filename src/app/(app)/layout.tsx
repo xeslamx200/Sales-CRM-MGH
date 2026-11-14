@@ -13,7 +13,7 @@ import { GlobalSearch } from "@/components/shell/global-search";
 import { NotificationsPopover } from "@/components/shell/notifications-popover";
 import { UserMenu } from "@/components/shell/user-menu";
 import { LanguageToggle } from "@/components/shell/language-toggle";
-import { getViewer, isAnyAdmin, isAnyManager } from "@/server/auth/viewer";
+import { getViewer, isAnyAdmin, isAnyManager, rolePagesHidden } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -41,7 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppSidebar
         access={{ anyAdmin: isAnyAdmin(viewer), anyManager: isAnyManager(viewer), superAdmin: viewer.isSuperAdmin }}
         unreadInbox={unreadInbox.count ?? 0}
-        hiddenHrefs={uiSettings.hiddenNav}
+        hiddenHrefs={[...uiSettings.hiddenNav, ...rolePagesHidden(viewer)]}
         brandLogo={viewer.activeCompany && brand.hasLogo ? { src: logoUrl(viewer.activeCompany.id, brand.version), plate: brand.logoPlate } : brand.logoPlate ? { src: "/mgh-logo.png", plate: true } : null}
       />
       <SidebarInset className="min-w-0">

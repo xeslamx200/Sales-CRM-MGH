@@ -6,7 +6,7 @@ import { DataTable, Pagination } from "@/components/app/data-table";
 import { FilterBar } from "@/components/app/filter-bar";
 import { StatusBadge, toneFor } from "@/components/app/status-badge";
 import { LeadCreateDialog } from "@/components/crm/lead-create";
-import { getViewer } from "@/server/auth/viewer";
+import { can, getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { listMembers, peopleOptions } from "@/server/data/members";
 import { PAGE_SIZE, leadsQuery, matchingContactIds } from "@/server/data/leads";
@@ -67,15 +67,15 @@ export default async function LeadsPage({ searchParams }: PageProps<"/leads">) {
         title={t.nav.leads}
         actions={
           <>
-            <Button variant="outline" asChild><Link href="/leads/import"><Upload />{t.common.import}</Link></Button>
-            <Button variant="outline" asChild><a href={exportHref}><Download />{t.common.export}</a></Button>
-            <LeadCreateDialog
+            {viewer.scopeCompanyIds.some((id) => can(viewer, id, "import_leads")) && <Button variant="outline" asChild><Link href="/leads/import"><Upload />{t.common.import}</Link></Button>}
+            {viewer.scopeCompanyIds.some((id) => can(viewer, id, "export_data")) && <Button variant="outline" asChild><a href={exportHref}><Download />{t.common.export}</a></Button>}
+            {viewer.scopeCompanyIds.some((id) => can(viewer, id, "create_leads")) && <LeadCreateDialog
               companies={viewer.companies.filter((c) => viewer.scopeCompanyIds.includes(c.id)).map((c) => ({ value: c.id, label: c.name }))}
               defaultCompanyId={viewer.activeCompany?.id ?? viewer.companies[0]?.id ?? ""}
               ownersByCompany={Object.fromEntries(viewer.scopeCompanyIds.map((id) => [id, peopleOptions(members, id)]))}
               defaultOwnerId={viewer.activeCompany?.role ? viewer.id : null}
               trigger={<Button><Plus />{t.leads.newLead}</Button>}
-            />
+            />}
           </>
         }
       />
