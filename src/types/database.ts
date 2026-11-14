@@ -1505,6 +1505,9 @@ isOneToOne: false
 "set_workshop_price":
 { Args: { "p_attendance": string,"p_country": string,"p_currency": string,"p_offering_id": string,"p_price": number }; Returns: string
                            },
+"report_response_log":
+{ Args: { "p_company_id": string,"p_from": string,"p_to": string }; Returns: { "answered_at": string | null,"answered_by": string | null,"answered_by_name": string | null,"asked_at": string,"contact_name": string,"conversation_id": string,"owner_name": string | null,"phone": string | null,"wait_seconds": number }[]
+                           },
 "set_offering_order":
 { Args: { "p_company_id": string,"p_ids": (string)[] }; Returns: number
                            },

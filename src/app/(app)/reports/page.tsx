@@ -9,7 +9,8 @@ import { FilterBar } from "@/components/app/filter-bar";
 import { PeriodPicker } from "@/components/reports/period-picker";
 import { KpiComparison, KpiTiles, type KpiRow } from "@/components/reports/kpis";
 import { LeadsPerDayChart, type LeadsDayRow } from "@/components/reports/leads-per-day-chart";
-import { ResponseSpeedTiles, SpeedDailyTable, WaitingNow, type SpeedRow, type WaitingRow } from "@/components/reports/response-speed";
+import { ResponseSpeedTiles, SpeedDailyTable, type SpeedRow } from "@/components/reports/response-speed";
+import { ResponseLog, type ResponseLogRow } from "@/components/reports/response-log";
 import { TargetProgress, type TargetRow } from "@/components/reports/targets";
 import { TargetDialog } from "@/components/reports/target-form";
 import { EmployeeDayCards } from "@/components/reports/employee-day";
@@ -33,7 +34,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
   const tab = oneOf(sp, "tab", TABS) ?? "overview";
   const company = viewer.activeCompany;
   const tz = company?.timezone ?? viewer.companies[0]?.timezone ?? "UTC";
-  const period = reportPeriod(sp, tz);
+  // the WhatsApp tab is about who wrote today and is still waiting: it opens on "today" unless a period is chosen
+  const period = reportPeriod(sp, tz, tab === "whatsapp" ? "today" : "this_month");
   const teamId = uuid(sp, "team");
   const userId = uuid(sp, "user");
   const supabase = await createClient();
@@ -234,23 +236,26 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
       supabase.rpc("report_whatsapp_response", { p_company_id: company.id, p_from: period.from, p_to: period.to }),
       supabase.rpc("report_leads_per_day", { p_company_id: company.id, p_from: period.from, p_to: period.to }),
       supabase.rpc("report_response_speed", { p_company_id: company.id, p_from: period.from, p_to: period.to }),
-      supabase.rpc("report_waiting_now", { p_company_id: company.id }),
+      supabase.rpc("report_response_log", { p_company_id: company.id, p_from: period.from, p_to: period.to }),
     ]);
     const { data, error } = resp;
     if (error) throw error;
     if (ld.error) throw ld.error;
     if (rs.error) throw rs.error;
-    if (wn.error) throw wn.error;
+    if (wn.error) throw wn.error;   // wn = the response log rows
     const speed = (rs.data ?? []) as SpeedRow[];
     return (
       <>
         {header}
+        <Section title={t.reports.speed.logTitle}>
+          <p className="mb-2 text-xs text-muted-foreground">{t.reports.speed.logHint}</p>
+          <ResponseLog rows={(wn.data ?? []) as ResponseLogRow[]} timeZone={tz} />
+        </Section>
         <Section title={t.reports.leadsPerDay}><LeadsPerDayChart rows={(ld.data ?? []) as LeadsDayRow[]} /></Section>
         <Section title={t.reports.speed.title}>
           <ResponseSpeedTiles overall={speed.find((r) => r.day === null)} t={t} locale={locale} />
           <p className="mt-2 text-xs text-muted-foreground">{t.reports.speed.note}</p>
         </Section>
-        <Section title={t.reports.speed.waitingNow}><WaitingNow rows={(wn.data ?? []) as WaitingRow[]} t={t} locale={locale} /></Section>
         <Section title={t.reports.speed.daily}><SpeedDailyTable rows={speed} t={t} locale={locale} /></Section>
         {(data ?? []).length === 0 ? <EmptyState title={t.reports.noData} /> : (
           <div className="overflow-x-auto rounded-lg border bg-card">

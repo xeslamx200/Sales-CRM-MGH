@@ -164,3 +164,9 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 18px 40px rgba(11, 31, 68, 0.28);
 }
+
+/* Every table in the CRM keeps its headers and values in the middle of their column. This rule is outside any @layer on purpose: unlayered CSS
+   wins over the per-table text-start / text-end utilities, so no table has to be edited one by one. */
+table :is(th, td) {
+  text-align: center;
+}
