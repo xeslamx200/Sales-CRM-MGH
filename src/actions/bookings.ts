@@ -1,4 +1,5 @@
 "use server";
+import { currentRates } from "@/server/fx";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/supabase/server";
 import { check, must, runAction, type ActionResult } from "@/server/action";
@@ -55,6 +56,7 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
     if (d.paidNow != null) {
       try {
         await limitUser(supabase, "payment");
+        await currentRates();   // a payment in a foreign currency needs a rate younger than 48 h: refresh it first (only when older than 6 h)
         paymentId = must(await supabase.rpc("record_booking_payment", { p_booking_id: id, p_amount: d.paidNow }));
         revalidatePath("/payments"); revalidatePath("/customer-payments");
       } catch (err) {
@@ -81,6 +83,7 @@ export async function recordBookingPayment(input: BookingPaymentInput): Promise<
     const bk = check(await supabase.from("workshop_bookings").select("company_id").eq("id", d.bookingId).maybeSingle());
     await requirePermission(bk?.company_id, "record_payments");
     await limitUser(supabase, "payment");
+    await currentRates();   // see createBooking: the rate must be fresh before a foreign-currency payment is recorded
     const id = must(await supabase.rpc("record_booking_payment", { p_booking_id: d.bookingId, p_amount: d.amount, p_paid_on: d.paidOn ?? undefined, p_note: d.note ?? undefined }));
     revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/payments"); revalidatePath("/customer-payments");
     return { paymentId: id };
