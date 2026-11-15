@@ -26,6 +26,14 @@ for (const p of ["/", "/inbox", "/leads", "/reports", "/bookings", "/workshops",
 }
 await page.goto(`${APP}/admin/settings`, { waitUntil: "load" }); await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => undefined);
 check("the Roles section is on the company settings page", (await page.getByTestId("roles-section").count()) === 1);
+check("the built-in roles table lists the 4 built-in roles (admin locked)", (await page.getByTestId("builtin-roles").locator("tbody tr").count()) === 4);
+check("each editable built-in role has an edit button", (await page.locator('[data-testid^="edit-builtin-"]').count()) === 3);
+await page.getByTestId("edit-builtin-sales_agent").click();
+await page.getByTestId("role-form").waitFor({ timeout: 8000 });
+check("the built-in role dialog has no name or base-role field, but 8 pages and 6 actions", (await page.getByTestId("role-name").count()) === 0 && (await page.locator('[data-testid^="page-"]').count()) === 8 && (await page.locator('[data-testid^="perm-"]').count()) === 6);
+check("save is enabled without typing a name", !(await page.getByTestId("role-save").isDisabled()));
+await page.screenshot({ path: "tests/scratch-ui/out/builtin-role-dialog.png" });
+await page.keyboard.press("Escape");
 await page.getByTestId("add-role").click();
 await page.getByTestId("role-form").waitFor({ timeout: 8000 });
 check("the add-role dialog shows name, base role, 8 pages and 6 actions", (await page.locator('[data-testid^="page-"]').count()) === 8 && (await page.locator('[data-testid^="perm-"]').count()) === 6);

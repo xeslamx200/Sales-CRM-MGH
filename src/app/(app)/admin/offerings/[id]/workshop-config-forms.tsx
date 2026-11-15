@@ -1,4 +1,6 @@
 "use client";
+import { fmt } from "@/i18n";
+import { CheckCheck, RotateCcw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FieldGroup } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -7,7 +9,7 @@ import { CheckboxField, FormError, SelectField, SubmitButton, TextareaField, Tex
 import { useActionForm } from "@/components/form/use-action-form";
 import { ConfirmDialog, FormDialog } from "@/components/app/dialogs";
 import { useI18n } from "@/components/i18n-provider";
-import { deactivateWorkshopPrice, saveWorkshopGroup, setWorkshopPrice } from "@/actions/workshop-config";
+import { deactivateWorkshopPrice, saveWorkshopGroup, setWorkshopPrice, deleteWorkshopGroup, setWorkshopGroupFinished } from "@/actions/workshop-config";
 import { workshopGroupSchema, workshopPriceSchema } from "@/schemas/workshops";
 import { WORKSHOP_COUNTRIES, WORKSHOP_CURRENCIES } from "@/lib/workshop-config.ts";
 
@@ -58,6 +60,33 @@ export function DeactivatePriceButton({ offeringId, country, attendance, currenc
       title={t.workshopConfig.deactivateTitle} description={t.workshopConfig.deactivateHint} confirmLabel={t.workshopConfig.deactivate}
       successMessage={t.workshopConfig.deactivated}
       onConfirm={async () => { const r = await deactivateWorkshopPrice({ offeringId, country, attendance, currency }); if (r.ok) router.refresh(); return r; }}
+    />
+  );
+}
+
+export function FinishGroupButton({ offeringId, groupId, finished }: { offeringId: string; groupId: string; finished: boolean }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const w = t.workshopConfig;
+  return (
+    <ConfirmDialog
+      trigger={<Button variant="ghost" size="icon-sm" aria-label={finished ? w.reopenGroup : w.finishGroup} title={finished ? w.reopenGroup : w.finishGroup} data-testid={finished ? "reopen-group" : "finish-group"}>{finished ? <RotateCcw /> : <CheckCheck />}</Button>}
+      title={finished ? w.reopenTitle : w.finishTitle} description={finished ? w.reopenHint : w.finishHint} confirmLabel={finished ? w.reopenGroup : w.finishGroup}
+      successMessage={finished ? w.reopened : w.finishedDone}
+      onConfirm={async () => { const r = await setWorkshopGroupFinished({ offeringId, groupId, finished: !finished }); if (r.ok) router.refresh(); return r; }}
+    />
+  );
+}
+
+export function DeleteGroupButton({ offeringId, groupId, name }: { offeringId: string; groupId: string; name: string }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const w = t.workshopConfig;
+  return (
+    <ConfirmDialog
+      trigger={<Button variant="ghost" size="icon-sm" aria-label={w.deleteGroup} title={w.deleteGroup} data-testid="delete-group"><Trash2 /></Button>}
+      title={fmt(w.deleteTitle, { name })} description={w.deleteHint} confirmLabel={w.deleteGroup} destructive successMessage={w.deletedDone}
+      onConfirm={async () => { const r = await deleteWorkshopGroup({ offeringId, groupId }); if (r.ok) router.refresh(); return r; }}
     />
   );
 }

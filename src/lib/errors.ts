@@ -131,6 +131,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "price.invalid_value": { ar: "قيمة السعر غير صالحة: دولة من حرفين، ونوع حضور، وعملة من 3 أحرف، وسعر أكبر من صفر بحد أقصى منزلتين عشريتين.", en: "Invalid price: a 2-letter country, an attendance type, a 3-letter currency and a price above zero with at most 2 decimals." },
   "price.not_found": { ar: "لا يوجد سعر مسجَّل لهذه التركيبة.", en: "No price is set for this combination." },
   "group.invalid_value": { ar: "بيانات المجموعة غير صالحة: اسم، وتواريخ جلسات صحيحة (YYYY-MM-DD)، وسعة عددًا صحيحًا موجبًا.", en: "Invalid group: a name, valid session dates (YYYY-MM-DD) and a positive whole capacity." },
+  "group.has_bookings": { ar: "لا يمكن حذف مجموعة عليها حجوزات؛ علّمها «منتهية» بدلًا من ذلك.", en: "A group that has bookings can't be deleted; mark it finished instead." },
   "group.not_found": { ar: "المجموعة غير موجودة.", en: "Group not found." },
   "booking.group_not_found": { ar: "المجموعة غير موجودة أو ليست متاحة لك.", en: "The group doesn't exist or isn't available to you." },
   "booking.contact_not_found": { ar: "العميل غير موجود أو ليست لديك صلاحية عليه ضمن هذه الشركة.", en: "The customer doesn't exist or you don't have access to them in this company." },

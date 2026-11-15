@@ -6,11 +6,11 @@ import { StatusBadge } from "@/components/app/status-badge";
 import type { Dictionary, Locale } from "@/i18n";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format.ts";
 import { countryName } from "@/lib/workshop-config.ts";
-import { DeactivatePriceButton, GroupDialog, PriceDialog } from "./workshop-config-forms";
+import { DeactivatePriceButton, DeleteGroupButton, FinishGroupButton, GroupDialog, PriceDialog } from "./workshop-config-forms";
 
 export type PriceRow = { id: string; country: string; attendance: string; currency: string; price: number; is_active: boolean };
 export type HistoryRow = { id: number; country: string; attendance: string; old_price: number | null; old_currency: string | null; new_price: number; new_currency: string; new_active: boolean; changed_at: string; actor: string | null };
-export type GroupRow = { id: string; name: string; sessions: string[]; capacity: number | null; attendance: string | null; is_active: boolean };
+export type GroupRow = { id: string; name: string; sessions: string[]; capacity: number | null; attendance: string | null; is_active: boolean; finished_at: string | null };
 export type GapRow = { country: string; attendance: string };
 
 /** Presentation only: the page (and a scratch preview) pass in already-loaded rows. */
@@ -79,13 +79,24 @@ export function WorkshopConfigView({ offering, tz, t, locale, prices, history, g
                 {groups.map((g) => (
                   <tr key={g.id} className="align-top">
                     <td className={g.is_active ? "px-3 py-2 font-medium" : "px-3 py-2 text-muted-foreground"}>{g.name}</td>
-                    <td className="px-3 py-2"><div className="ltr-nums flex flex-wrap gap-x-2">{g.sessions.map((d) => <span key={d} className="whitespace-nowrap">{formatDate(d, "UTC", locale)}</span>)}</div></td>
+                    <td className="px-3 py-2"><div className="ltr-nums flex flex-wrap justify-center gap-x-2" dir="ltr">{g.sessions.map((d) => <span key={d} className="whitespace-nowrap">{d.replaceAll("-", "/")}</span>)}</div></td>
                     <td className="px-3 py-2">{g.attendance ? att(g.attendance) : w.anyAttendance}</td>
                     <td className="ltr-nums px-3 py-2">{g.capacity == null ? w.noCapacity : formatNumber(g.capacity, locale)}</td>
-                    <td className="px-3 py-2"><StatusBadge tone={g.is_active ? "success" : "neutral"}>{g.is_active ? t.common.active : w.inactive}</StatusBadge></td>
                     <td className="px-3 py-2">
+                      {(() => {
+                        // finished by an admin, or by itself once its last session date has passed
+                        const lastDate = g.sessions.length ? g.sessions[g.sessions.length - 1] : null;
+                        const over = Boolean(g.finished_at) || (lastDate !== null && lastDate < new Date().toISOString().slice(0, 10));
+                        return over ? <StatusBadge tone="info">{w.finished}</StatusBadge> : <StatusBadge tone={g.is_active ? "success" : "neutral"}>{g.is_active ? t.common.active : w.inactive}</StatusBadge>;
+                      })()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-center gap-0.5">
                       <GroupDialog offeringId={id} group={{ id: g.id, name: g.name, sessions: g.sessions.join("\n"), capacity: g.capacity == null ? "" : String(g.capacity), attendance: (g.attendance ?? "") as "" | "online" | "offline", isActive: g.is_active }}
-                        trigger={<Button variant="ghost" size="icon-sm" aria-label={w.editGroup}><Pencil /></Button>} />
+                        trigger={<Button variant="ghost" size="icon-sm" aria-label={w.editGroup} title={w.editGroup}><Pencil /></Button>} />
+                      <FinishGroupButton offeringId={id} groupId={g.id} finished={Boolean(g.finished_at)} />
+                      <DeleteGroupButton offeringId={id} groupId={g.id} name={g.name} />
+                      </div>
                     </td>
                   </tr>
                 ))}
