@@ -535,6 +535,8 @@ export const en: Dictionary = {
     live: "Live",
     liveOn: "New messages appear instantly, no page refresh needed",
     liveOff: "Live updates interrupted, retrying",
+    fromAd: "From an ad",
+    fromPost: "From a post",
     mediaPlaceholder: "Media (picture, file or voice note) from the app history; the file is not available",
     internalNote: "Internal note",
     notePlaceholder: "Internal note — never sent to the customer…",

@@ -95,7 +95,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
       // the latest 200 messages; a long history (imported chats) can be opened 400 more at a time, up to 3,000
       const msgLimit = Math.min(Math.max(Number(str(sp, "msgs")) || 200, 200), 3000);
       const [msgs, notes, grant, members, leadRow, templates, health, convOfferings] = await Promise.all([
-        supabase.from("messages").select("id, direction, body, message_type, media, status, error_code, error_message, sent_by, sent_at, sender:profiles!messages_sent_by_fkey(full_name), cache:message_media_cache(mime_type)")
+        supabase.from("messages").select("id, direction, body, message_type, media, status, error_code, error_message, sent_by, sent_at, sender:profiles!messages_sent_by_fkey(full_name), cache:message_media_cache(mime_type), ad:message_referrals(source_type, source_url, headline, body, media_type)")
           .eq("conversation_id", conv.id).order("sent_at", { ascending: false }).limit(msgLimit),
         supabase.from("conversation_notes").select("id, body, created_at, author:profiles!conversation_notes_author_id_fkey(full_name)")
           .eq("conversation_id", conv.id).order("created_at", { ascending: true }),
@@ -148,6 +148,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
             errorCode: m.error_code, errorMessage: m.error_message, sentAt: m.sent_at,
             sender: m.sender?.full_name ?? null, echo: m.direction === "outbound" && !m.sent_by,
             media: mediaInfo(m.media, m.cache?.mime_type ?? null),
+            ad: m.ad ? { type: m.ad.source_type, url: m.ad.source_url, headline: m.ad.headline, body: m.ad.body } : null,
           }))}
           notes={(notes.data ?? []).map((n): ThreadNote => ({ id: n.id, body: n.body, at: n.created_at, author: n.author?.full_name ?? "—" }))}
           viewerId={viewer.id}

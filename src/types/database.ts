@@ -968,6 +968,33 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"message_referrals": {
+                  Row: {
+                    "body": string | null,"conversation_id": string,"created_at": string,"ctwa_clid": string | null,"headline": string | null,"media_type": string | null,"message_id": string,"source_id": string | null,"source_type": string | null,"source_url": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body"?: string | null,"conversation_id": string,"created_at"?: string,"ctwa_clid"?: string | null,"headline"?: string | null,"media_type"?: string | null,"message_id": string,"source_id"?: string | null,"source_type"?: string | null,"source_url"?: string | null
+                  }
+                  Update: {
+                    "body"?: string | null,"conversation_id"?: string,"created_at"?: string,"ctwa_clid"?: string | null,"headline"?: string | null,"media_type"?: string | null,"message_id"?: string,"source_id"?: string | null,"source_type"?: string | null,"source_url"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_referrals_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: true
+      referencedRelation: "messages"
+      referencedColumns: ["id"]
+    },
+                    {
+      foreignKeyName: "message_referrals_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"messages": {
                   Row: {
                     "body": string | null,"client_request_id": string | null,"conversation_id": string,"created_at": string,"direction": Database["public"]['Enums']["message_direction"],"error_code": string | null,"error_message": string | null,"id": string,"is_sandbox": boolean,"is_simulated": boolean,"media": Json | null,"message_type": string,"sent_at": string,"sent_by": string | null,"status": Database["public"]['Enums']["message_status"],"status_updated_at": string | null,"wa_message_id": string | null

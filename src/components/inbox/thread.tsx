@@ -34,6 +34,8 @@ export type ThreadMessage = {
   id: string; direction: Enums<"message_direction">; body: string | null; type: string; status: Enums<"message_status">;
   errorCode: string | null; errorMessage: string | null; sentAt: string; sender: string | null; echo: boolean;
   media: MessageMediaInfo | null;
+  /** The Facebook / Instagram ad or post this first message came from (click-to-WhatsApp). */
+  ad?: { type: string | null; url: string | null; headline: string | null; body: string | null } | null;
 };
 export type ThreadNote = { id: string; body: string; at: string; author: string };
 type Conversation = {
@@ -233,6 +235,16 @@ export function ConversationThread({
                   <p className="mb-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                     {item.m.echo ? <><Smartphone className="size-3" />{t.inbox.fromPhoneApp}</> : item.m.sender}
                   </p>
+                )}
+                {item.m.ad && (
+                  <div className="mb-1.5 rounded-lg bg-muted/70 px-2.5 py-2 text-xs" data-testid="ad-card">
+                    <p className="mb-0.5 text-[11px] font-medium text-primary">{item.m.ad.type === "post" ? t.inbox.fromPost : t.inbox.fromAd}</p>
+                    {item.m.ad.headline && <p className="font-medium" dir="auto">{item.m.ad.headline}</p>}
+                    {item.m.ad.body && <p className="mt-0.5 line-clamp-4 whitespace-pre-line text-muted-foreground" dir="auto">{item.m.ad.body}</p>}
+                    {item.m.ad.url && (
+                      <a href={item.m.ad.url} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-primary underline" dir="ltr">{item.m.ad.url.replace(/^https?:\/\//, "")}</a>
+                    )}
+                  </div>
                 )}
                 {item.m.media && <MessageMedia messageId={item.m.id} media={item.m.media} />}
                 {item.m.media?.template && (
