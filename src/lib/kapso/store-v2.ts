@@ -53,6 +53,10 @@ export function createKapsoStoreV2(db: RpcClient): KapsoStoreV2 & KapsoQuarantin
       })) as Array<{ o_duplicate?: boolean }> | null;
       return { duplicate: Boolean(data?.[0]?.o_duplicate) };
     },
+    async recordReferral(e: KapsoInboundV2) {
+      if (!e.referral) return;
+      await call("record_message_referral", { p_phone_number_id: e.phoneNumberId, p_wa_message_id: e.waMessageId, p_referral: e.referral });
+    },
     async applyStatus(e: KapsoStatusV2) {
       const data = await call("apply_kapso_status_v2", {
         p_phone_number_id: e.phoneNumberId, p_wa_message_id: e.waMessageId, p_status: e.status,

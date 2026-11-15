@@ -464,3 +464,31 @@ test("kapso v2 store: every RPC argument is sent (null when absent); only phone_
   const failing = createKapsoStoreV2({ rpc: async () => ({ data: null, error: { message: "kapso.unknown_account" } }) });
   await assert.rejects(() => failing.ingestInbound(inb), (e: { message: string }) => e.message === "kapso.unknown_account");
 });
+
+test("click-to-WhatsApp ad: the referral is read from the usual places, keeps only known fields and is absent otherwise", () => {
+  const ref = { source_type: "ad", source_id: "1203", source_url: "https://fb.me/x", headline: "Workshop", body: "Join", media_type: "image", ctwa_clid: "AbC", evil: "<script>" };
+  for (const place of ["message", "kapso", "item", "conversation"] as const) {
+    const base = item("inbound", `wamid.AD_${place}`) as Record<string, any>;
+    if (place === "message") base.message.referral = ref;
+    if (place === "kapso") base.message.kapso.referral = ref;
+    if (place === "item") base.referral = ref;
+    if (place === "conversation") base.conversation.referral = ref;
+    const e = parseKapsoPayloadV2(base, RECEIVED).events[0] as KapsoInboundV2;
+    assert.deepEqual(e.referral, { source_type: "ad", source_id: "1203", source_url: "https://fb.me/x", headline: "Workshop", body: "Join", media_type: "image", ctwa_clid: "AbC" }, place);
+  }
+  const none = parseKapsoPayloadV2(item("inbound", "wamid.NOAD"), RECEIVED).events[0] as KapsoInboundV2;
+  assert.equal(none.referral, null);
+});
+
+test("click-to-WhatsApp ad: a failure while saving the ad never fails the message", async () => {
+  const store = new FakeStore() as FakeStore & { recordReferral?: (e: KapsoInboundV2) => Promise<void> };
+  store.accounts.set(PNID, "production");
+  let asked = 0;
+  store.recordReferral = async () => { asked++; throw new Error("db down"); };
+  const payload = item("inbound", "wamid.ADFAIL") as Record<string, any>;
+  payload.message.referral = { source_type: "ad", headline: "H" };
+  const out = await handleKapsoPostV2(req(payload, RECEIVED), SECRET, store);
+  assert.equal(asked, 1);
+  assert.equal(store.inbound.length, 1);
+  assert.equal(out.httpStatus, 200);
+});

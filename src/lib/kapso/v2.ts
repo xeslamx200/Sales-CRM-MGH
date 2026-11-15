@@ -54,6 +54,33 @@ const ORIGIN_SHAPE = /^[a-z_]{1,40}$/;
 export const ECHO_ORIGINS = ["business_app", "other_app", "meta_business_agent"] as const;
 export type EchoOrigin = (typeof ECHO_ORIGINS)[number];
 
+export type KapsoReferral = {
+  source_type: string | null; source_id: string | null; source_url: string | null; headline: string | null;
+  body: string | null; media_type: string | null; ctwa_clid: string | null;
+};
+const REFERRAL_FIELDS = ["source_type", "source_id", "source_url", "headline", "body", "media_type", "ctwa_clid"] as const;
+/**
+ * The ad data of a click-to-WhatsApp message. Kapso's documentation names the fields but not their place in the payload, so the usual places are
+ * looked at (message.referral, message.kapso.referral, referral / conversation.referral on the item); only the known fields are kept, clipped.
+ */
+export function extractReferral(item: Obj, m: Obj): KapsoReferral | null {
+  const conv = isObj(item.conversation) ? item.conversation : {};
+  const kapso = isObj(m.kapso) ? m.kapso : {};
+  for (const c of [m.referral, kapso.referral, item.referral, conv.referral, (isObj(conv.kapso) ? conv.kapso : {}).referral]) {
+    if (!isObj(c)) continue;
+    const out: Record<string, string | null> = {};
+    let any = false;
+    for (const f of REFERRAL_FIELDS) {
+      const v = c[f];
+      const t = typeof v === "string" ? v.trim().slice(0, f === "source_url" ? 2000 : f === "body" ? 2000 : 500) : null;
+      out[f] = t ? t : null;
+      if (t) any = true;
+    }
+    if (any) return out as KapsoReferral;
+  }
+  return null;
+}
+
 export type KapsoInboundV2 = {
   kind: "kapso_inbound_v2";
   eventKey: string;
@@ -67,6 +94,8 @@ export type KapsoInboundV2 = {
   body: string | null;
   /** The file of an image / video / audio / document / sticker message (null for everything else). */
   media: KapsoMediaRef | null;
+  /** The Facebook / Instagram ad this first message came from (click-to-WhatsApp), when the payload carries one. */
+  referral?: KapsoReferral | null;
   sentAt: Date;
 };
 export type KapsoStatusV2 = {
@@ -206,7 +235,7 @@ export function parseKapsoPayloadV2(payload: unknown, eventName: KapsoEventName,
       if (!sentAt) return reject(item, i, "invalid_timestamp");
       return accept(item, {
         kind: "kapso_inbound_v2", eventKey, phoneNumberId, waMessageId: id, fromWaId: wa, fromBsuid: bsuid, origin,
-        profileName: clip(str(conv.contact_name)), messageType: content.type, body, media, sentAt,
+        profileName: clip(str(conv.contact_name)), messageType: content.type, body, media, referral: extractReferral(item, m), sentAt,
       });
     }
     const failure = status === "failed" ? firstFailure(m) : { code: null, message: null };
@@ -256,6 +285,8 @@ export interface KapsoStoreV2 {
   /** kapso_account_protocol. */
   accountClass(phoneNumberId: string): Promise<KapsoAccountClass>;
   ingestInbound(e: KapsoInboundV2): Promise<{ duplicate: boolean }>;
+  /** record_message_referral: remember the ad a message came from. Optional and best effort: it never decides whether the message is stored. */
+  recordReferral?(e: KapsoInboundV2): Promise<void>;
   /** false = cannot be applied yet (retry-safe); the retry job passes isRetry=true later. */
   applyStatus(e: KapsoStatusV2): Promise<boolean>;
   /** Best-effort account telemetry; its own transaction; failures never matter. */
@@ -336,7 +367,10 @@ async function processEventV2(store: KapsoStoreV2, ev: KapsoEventV2, out: KapsoO
   };
   let error: string;
   try {
-    if (ev.kind === "kapso_inbound_v2") await store.ingestInbound(ev);
+    if (ev.kind === "kapso_inbound_v2") {
+      await store.ingestInbound(ev);
+      if (ev.referral && store.recordReferral) { try { await store.recordReferral(ev); } catch { /* the ad is extra information: the message is already stored */ } }
+    }
     else if (!(await store.applyStatus(ev))) return await failedMark("status.message_not_found");
     if ((await store.finishEvent(ev.eventKey, "processed")) === "already_final") { out.duplicates++; return; }
     out.processed++;
