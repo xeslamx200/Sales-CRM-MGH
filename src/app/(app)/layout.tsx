@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -15,6 +16,15 @@ import { UserMenu } from "@/components/shell/user-menu";
 import { LanguageToggle } from "@/components/shell/language-toggle";
 import { getViewer, isAnyAdmin, isAnyManager, rolePagesHidden } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
+
+// Browser tab: "<company name> CRM" (the company the user is working in), and "<page> · <company name> CRM" on the other pages.
+export async function generateMetadata(): Promise<Metadata> {
+  const viewer = await getViewer();
+  const name = viewer.activeCompany?.name ?? viewer.companies[0]?.name;
+  if (!name) return {};
+  const app = `${name} CRM`;
+  return { title: { default: app, template: `%s · ${app}` } };
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getViewer();
