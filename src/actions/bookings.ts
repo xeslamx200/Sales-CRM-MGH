@@ -11,7 +11,7 @@ import {
   approveDiscountSchema, bookingPaymentSchema, bookingSchema, cancelBookingSchema, discountRequestSchema, rejectDiscountSchema, workshopOptionsSchema,
   type ApproveDiscountInput, type BookingInput, type BookingPaymentInput, type CancelBookingInput, type DiscountRequestInput, type RejectDiscountInput,
 } from "@/schemas/bookings";
-import type { z } from "zod";
+import { z } from "zod";
 
 // Every rule (price lookup and freezing, discount policy and approval, capacity, duplicates, overpayment, who may do what) is enforced by the database
 // functions of migrations 985 / 986. These actions validate the shape, call them with the user's own session, and translate errors.
@@ -40,7 +40,7 @@ export async function workshopOptions(input: z.input<typeof workshopOptionsSchem
 }
 
 /** Create a booking. A discount above 10 % does NOT apply: the booking is created at the full price and the discount waits for approval. */
-export async function createBooking(input: BookingInput): Promise<ActionResult<{ bookingId: string; paymentId: string | null; paymentError: string | null }>> {
+export async function createBooking(input: BookingInput): Promise<ActionResult<{ bookingId: string; paymentId: string | null; paymentError: string | null; awaitingApproval: boolean }>> {
   return runAction(bookingSchema, input, async (d) => {
     const supabase = await createClient();
     const grp = check(await supabase.from("workshop_groups").select("company_id").eq("id", d.groupId).maybeSingle());
@@ -53,7 +53,10 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
     // optional first payment: a separate, checked call (the booking exists either way; a refused payment is reported, never hidden)
     let paymentError: string | null = null;
     let paymentId: string | null = null;
-    if (d.paidNow != null) {
+    // a booking made by anybody but a company admin waits for approval (migration 1012): no payment can be recorded until a company admin approves it
+    const created = await supabase.from("workshop_bookings").select("status").eq("id", id).maybeSingle();
+    const awaitingApproval = created.data?.status === "pending_approval";
+    if (d.paidNow != null && !awaitingApproval) {
       try {
         await limitUser(supabase, "payment");
         await currentRates();   // a payment in a foreign currency needs a rate younger than 48 h: refresh it first (only when older than 6 h)
@@ -63,7 +66,18 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
         paymentError = userMessage(errorKey(err), await requestLocale());
       }
     }
-    return { bookingId: id, paymentId, paymentError };
+    return { bookingId: id, paymentId, paymentError, awaitingApproval };
+  });
+}
+
+const approveBookingSchema = z.object({ bookingId: z.uuid(), note: z.string().trim().max(300).optional() });
+/** Approve a booking that waits for approval (company admins only: the database function checks it, re-checks the seat and the duplicate rule). */
+export async function approveBooking(input: z.input<typeof approveBookingSchema>): Promise<ActionResult<null>> {
+  return runAction(approveBookingSchema, input, async (d) => {
+    const supabase = await createClient();
+    check(await supabase.rpc("approve_workshop_booking", { p_id: d.bookingId, p_note: d.note || undefined }));
+    revalidatePath("/bookings"); revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/workshops"); revalidatePath("/");
+    return null;
   });
 }
 

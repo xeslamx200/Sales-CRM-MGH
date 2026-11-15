@@ -51,7 +51,7 @@ export function BookingsTable({ rows, t, locale, tz, showWorkshop = true }: { ro
         </div>
       );
     } },
-    { key: "status", header: b.colStatus, cell: (r) => <PayBadge status={r.payment_status} t={t} /> },
+    { key: "status", header: b.colStatus, cell: (r) => r.booking_status === "pending_approval" ? <StatusBadge tone="warning">{b.bookingStatus.pending_approval}</StatusBadge> : <PayBadge status={r.payment_status} t={t} /> },
     { key: "dstatus", header: b.colDiscountStatus, cell: (r) => <DiscBadge status={r.discount_status} t={t} /> },
     { key: "date", header: b.colBooked, className: "whitespace-nowrap", cell: (r) => formatDate(r.booked_at, tz, locale) },
   ];

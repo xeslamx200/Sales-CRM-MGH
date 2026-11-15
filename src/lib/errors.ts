@@ -142,6 +142,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "booking.price_not_configured": { ar: "لا يوجد سعر محدد لهذه الورشة في هذه الدولة ونوع الحضور. اطلب من الأدمن تحديد السعر أولًا.", en: "No price is set for this workshop in this country and attendance type. Ask an admin to set the price first." },
   "booking.invalid_discount": { ar: "قيمة الخصم غير صالحة: يجب أن تكون أكبر من صفر، ولا تتجاوز سعر الورشة (أو 100%)، وبحد أقصى منزلتين عشريتين.", en: "Invalid discount: it must be above zero, not exceed the workshop price (or 100 %) and have at most 2 decimals." },
   "booking.discount_reason_required": { ar: "اكتب سبب الخصم (3 أحرف على الأقل).", en: "Write the discount reason (at least 3 characters)." },
+  "booking.awaiting_approval": { ar: "هذا الحجز بانتظار اعتماد مسؤول الشركة. لا يمكن تسجيل دفعة قبل اعتماده.", en: "This booking is waiting for a company admin to approve it. A payment cannot be recorded before that." },
   "booking.duplicate": { ar: "هذا العميل محجوز بالفعل في هذه الورشة.", en: "This customer already has an active booking for this workshop." },
   "booking.group_full": { ar: "المجموعة مكتملة العدد.", en: "The group is full." },
   "booking.not_found": { ar: "الحجز غير موجود أو ليست لديك صلاحية عليه.", en: "The booking doesn't exist or you don't have access to it." },

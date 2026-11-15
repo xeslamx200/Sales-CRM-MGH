@@ -10,9 +10,9 @@ import { FieldGroup } from "@/components/ui/field";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FormError, SelectField, SubmitButton, TextareaField, TextField } from "@/components/form/fields";
 import { useActionForm } from "@/components/form/use-action-form";
-import { FormDialog } from "@/components/app/dialogs";
+import { ConfirmDialog, FormDialog } from "@/components/app/dialogs";
 import { useI18n } from "@/components/i18n-provider";
-import { approveDiscount, cancelBooking, recordBookingPayment, rejectDiscount, requestDiscount } from "@/actions/bookings";
+import { approveBooking, approveDiscount, cancelBooking, recordBookingPayment, rejectDiscount, requestDiscount } from "@/actions/bookings";
 import { buildBookingPaymentSchema, buildDiscountRequestSchema } from "@/schemas/bookings";
 import { ProofField, uploadProof } from "@/components/bookings/proof-field";
 
@@ -146,6 +146,30 @@ export function CancelBookingDialog({ bookingId }: { bookingId: string }) {
   return (
     <ReasonDialog trigger={<Button size="sm" variant="outline"><Ban />{t.bookings.cancelBooking}</Button>}
       title={t.bookings.cancelTitle} hint={`${t.bookings.cancelHint} ${t.bookings.cancelNote}`} label={t.bookings.reasonLabel} confirmLabel={t.bookings.cancelBooking} destructive success={t.bookings.cancelledMsg}
+      onSubmit={(reason) => cancelBooking({ bookingId, reason })} />
+  );
+}
+
+/** Approve a booking that waits for approval (company admins; the database function decides). */
+export function ApproveBookingDialog({ bookingId }: { bookingId: string }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  return (
+    <ConfirmDialog
+      trigger={<Button size="sm" data-testid="approve-booking"><Check />{t.bookings.approveBooking}</Button>}
+      title={t.bookings.approveBookingTitle} description={t.bookings.approveBookingHint} confirmLabel={t.bookings.approveBooking}
+      successMessage={t.bookings.bookingApproved}
+      onConfirm={async () => { const r = await approveBooking({ bookingId }); if (r.ok) router.refresh(); return r; }}
+    />
+  );
+}
+
+/** Reject a booking that waits for approval (company admin) or withdraw it (the person who made it): it is cancelled with a reason. */
+export function RejectBookingDialog({ bookingId }: { bookingId: string }) {
+  const { t } = useI18n();
+  return (
+    <ReasonDialog trigger={<Button size="sm" variant="outline" data-testid="reject-booking"><X />{t.bookings.rejectBooking}</Button>}
+      title={t.bookings.rejectBookingTitle} hint={t.bookings.rejectBookingHint} label={t.bookings.reasonLabel} confirmLabel={t.bookings.rejectBooking} destructive success={t.bookings.cancelledMsg}
       onSubmit={(reason) => cancelBooking({ bookingId, reason })} />
   );
 }

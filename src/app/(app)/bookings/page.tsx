@@ -106,7 +106,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/booking
   // per-currency totals of the ACTIVE bookings shown (never summed across currencies)
   const totals = new Map<string, { final: number; confirmed: number; pending: number; remaining: number }>();
   for (const r of rows) {
-    if (r.booking_status === "cancelled") continue;
+    if (r.booking_status !== "booked") continue;   // cancelled and waiting-for-approval bookings are in no total
     const x = totals.get(r.currency) ?? { final: 0, confirmed: 0, pending: 0, remaining: 0 };
     x.final += Number(r.final_price); x.confirmed += Number(r.confirmed); x.pending += Number(r.pending); x.remaining += Math.max(0, Number(r.remaining) - Number(r.pending));
     totals.set(r.currency, x);

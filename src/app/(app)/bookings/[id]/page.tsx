@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, Section } from "@/components/app/page-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { DiscBadge, PayBadge } from "@/components/bookings/bookings-table";
-import { ApproveDiscountDialog, CancelBookingDialog, RecordPaymentDialog, RejectDiscountDialog, RequestDiscountDialog } from "@/components/bookings/booking-actions";
-import { getViewer } from "@/server/auth/viewer";
+import { ApproveBookingDialog, ApproveDiscountDialog, CancelBookingDialog, RejectBookingDialog, RecordPaymentDialog, RejectDiscountDialog, RequestDiscountDialog } from "@/components/bookings/booking-actions";
+import { getViewer, isAdminOf } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { countryName } from "@/lib/workshop-config.ts";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format.ts";
@@ -44,6 +44,8 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
   const cur = r.currency;
   const m = (v: number | null) => (v == null ? "—" : formatCurrency(Number(v), cur, locale));
   const active = r.booking_status === "booked";
+  const awaiting = r.booking_status === "pending_approval";
+  const mayApprove = isAdminOf(viewer, companyId);
   const hasMoney = Number(r.pending) > 0 || Number(r.confirmed) > 0;
   const remainingToPay = Math.max(0, Number(r.final_price) - Number(r.confirmed) - Number(r.pending));
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
@@ -89,6 +91,15 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
             <div className="mt-3 flex flex-wrap gap-2">
               {remainingToPay > 0 && <RecordPaymentDialog bookingId={id} currency={cur} today={today} />}
               <CancelBookingDialog bookingId={id} />
+            </div>
+          )}
+          {awaiting && (
+            <div className="mt-3 grid gap-2" data-testid="awaiting-approval">
+              <p className="rounded-md bg-warning/10 px-3 py-2 text-sm">{b.awaitingNote}</p>
+              <div className="flex flex-wrap gap-2">
+                {mayApprove && <ApproveBookingDialog bookingId={id} />}
+                <RejectBookingDialog bookingId={id} />
+              </div>
             </div>
           )}
           {active && hasMoney && <p className="mt-2 text-xs text-muted-foreground">{b.cancelHint}</p>}
