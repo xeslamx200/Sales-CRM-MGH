@@ -91,7 +91,7 @@ export function HistorySync({ defaultFrom }: { defaultFrom: string }) {
                   <td className="ltr-nums px-3 py-2">{n(x.alreadyThere)}</td>
                   <td className="ltr-nums px-3 py-2 font-semibold">{n(x.added)}</td>
                   <td className="ltr-nums px-3 py-2">{n(x.failed)}</td>
-                  <td className="ltr-nums px-3 py-2">{n(x.filesCopied)}{x.filesFailed ? ` (${n(x.filesFailed)} ${h.notAvailable})` : ""}</td>
+                  <td className="ltr-nums px-3 py-2">{x.adsSeen ? `${h.ads}: ${n(x.adsSaved ?? 0)}/${n(x.adsSeen)} · ` : ""}{n(x.filesCopied)}{x.filesFailed ? ` (${n(x.filesFailed)} ${h.notAvailable})` : ""}</td>
                   <td className="ltr-nums px-3 py-2">{x.crmMessages !== undefined ? `${n(x.crmMessages)} ${h.messages} · ${n(x.crmConversations)} ${h.chats}` : "—"}</td>
                 </tr>
               ))}

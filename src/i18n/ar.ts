@@ -1213,6 +1213,7 @@ export const ar = {
     phaseDone: "تم",
     inKapso: "في Kapso",
     alreadyThere: "موجودة من قبل",
+    ads: "الإعلانات",
     added: "أضيفت الآن",
     failed: "تعذّرت",
     files: "ملفات نُسخت",

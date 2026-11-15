@@ -1215,6 +1215,7 @@ export const en: Dictionary = {
     phaseDone: "Done",
     inKapso: "In Kapso",
     alreadyThere: "Already there",
+    ads: "Ads",
     added: "Added now",
     failed: "Could not store",
     files: "Files copied",

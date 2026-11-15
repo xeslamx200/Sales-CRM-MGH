@@ -3,6 +3,7 @@ import { createAdminClient } from "@/server/supabase/admin";
 import { serverEnv } from "@/server/env";
 import { mapKapsoMessage, unifyIdentities, type HistoryRow } from "@/lib/kapso/history.ts";
 import { fetchKapsoMedia } from "@/lib/kapso/media.ts";
+import { extractReferral, type KapsoReferral } from "@/lib/kapso/v2.ts";
 import { INBOUND_MEDIA_TYPES, safeFileName } from "@/lib/whatsapp/graph.ts";
 import type { Json } from "@/types/database";
 
@@ -25,6 +26,8 @@ export type NumberProgress = {
   pn: string; name: string; phase: "messages" | "media" | "done"; cursor: string | null;
   seen: number; alreadyThere: number; added: number; failed: number; skipped: number;
   filesSeen: number; filesCopied: number; filesFailed: number;
+  /** messages that came from an ad (Kapso's list says so) and the ones whose ad is now stored */
+  adsSeen?: number; adsSaved?: number;
   /** filled when the number is done: what the CRM holds from the chosen day */
   crmMessages?: number; crmConversations?: number;
 };
@@ -75,6 +78,7 @@ export async function syncStep(state: SyncState): Promise<SyncState> {
 
     if (n.phase === "messages") {
       const items: { row: HistoryRow; cid: string | null }[] = [];
+      const ads: { id: string; ref: KapsoReferral }[] = [];
       let reachedStart = false;
       while (Date.now() - t0 < STEP_MS) {
         const page = await listPage(KAPSO_API_KEY, n.pn, n.cursor, false);
@@ -82,6 +86,8 @@ export async function syncStep(state: SyncState): Promise<SyncState> {
         for (const m of page.data) {
           const ts = Number(m.timestamp);
           if (Number.isFinite(ts) && ts < s.from) { reachedStart = true; continue; }
+          const ref = String(m.id ?? "") && (m.kapso as { direction?: string } | undefined)?.direction !== "outbound" ? extractReferral({}, m) : null;
+          if (ref) ads.push({ id: String(m.id), ref });
           const r = mapKapsoMessage(m);
           if ("skip" in r) { n.skipped++; continue; }
           n.seen++;
@@ -96,6 +102,12 @@ export async function syncStep(state: SyncState): Promise<SyncState> {
         if (error) throw error;
         const res = data as { inserted: number; duplicate: number; failed: number };
         n.added += res.inserted; n.alreadyThere += res.duplicate; n.failed += res.failed;
+      }
+      // the ad of a message that came from one: stored for messages that were already there too (first stored value stays)
+      n.adsSeen = (n.adsSeen ?? 0) + ads.length;
+      for (const a of ads) {
+        const { data } = await (admin as unknown as { rpc(n: string, a: Record<string, unknown>): PromiseLike<{ data: unknown }> }).rpc("record_message_referral", { p_phone_number_id: n.pn, p_wa_message_id: a.id, p_referral: a.ref });
+        if (data === true) n.adsSaved = (n.adsSaved ?? 0) + 1;
       }
       if (reachedStart) { n.phase = "media"; n.cursor = null; }
       if (s.rateLimited) break;
