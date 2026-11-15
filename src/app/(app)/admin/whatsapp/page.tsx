@@ -10,6 +10,7 @@ import { listMembers, peopleOptions } from "@/server/data/members";
 import { GrantRow, AddGrantForm, SendingSwitch, WaAccountDialog } from "./whatsapp-forms";
 import { NumberTools } from "./number-tools";
 import { HistorySync } from "./history-sync";
+import { ChatImport } from "./chat-import";
 import { formatDateTime } from "@/lib/format.ts";
 
 export default async function WhatsappNumbersPage() {
@@ -47,6 +48,11 @@ export default async function WhatsappNumbersPage() {
         )}
       />
       {viewer.isSuperAdmin && visible.some((a) => a.provider === "kapso" && a.environment === "production") && <HistorySync defaultFrom="2026-08-01" />}
+      {viewer.isSuperAdmin && visible.some((a) => a.provider === "kapso" && a.environment === "production") && (
+        <ChatImport numbers={visible.filter((a) => a.provider === "kapso" && a.environment === "production").map((a) => ({
+          id: a.id, name: a.display_name, phone: a.phone_e164, timeZone: viewer.companies.find((c) => c.id === a.default_company_id)?.timezone ?? tz,
+        }))} />
+      )}
       {visible.length === 0 ? (
         <EmptyState icon={Phone} title={t.admin.noNumbers} description={t.admin.noNumbersHint} />
       ) : (
