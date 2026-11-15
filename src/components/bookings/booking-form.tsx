@@ -58,7 +58,7 @@ export function BookingForm({ workshops }: { workshops: WorkshopChoice[] }) {
     },
     onSuccess: async (data) => {
       if (data.awaitingApproval) toast.info(b.createdAwaiting);
-      else if (data.paymentError) toast.warning(`${b.createdPaymentFailed} ${data.paymentError}`);
+      else if (data.paymentError) toast.warning(`${b.createdPaymentFailed} ${data.paymentError}`, { duration: Infinity, closeButton: true });   // stays until closed: a missed payment is money
       else if (data.paymentId && proof && !(await uploadProof(data.paymentId, proof))) toast.warning(t.payments.savedNoProof);
       else toast.success(b.created);
       router.push(`/bookings/${data.bookingId}`);

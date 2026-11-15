@@ -102,6 +102,9 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
               </div>
             </div>
           )}
+          {active && !hasMoney && Number(r.rejected) === 0 && (
+            <p className="mt-3 rounded-md bg-warning/10 px-3 py-2 text-sm" data-testid="no-payment-yet">{b.noPaymentYet}</p>
+          )}
           {active && hasMoney && <p className="mt-2 text-xs text-muted-foreground">{b.cancelHint}</p>}
         </Section>
       </div>

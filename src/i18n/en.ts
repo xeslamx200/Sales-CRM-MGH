@@ -935,6 +935,7 @@ export const en: Dictionary = {
     level: { none: "—", employee: "Employee", manager: "Manager", admin: "Admin" },
     bookingStatus: { booked: "Active", pending_approval: "Awaiting approval", cancelled: "Cancelled" },
     createdAwaiting: "The booking was created and is waiting for a company admin to approve it. It is not counted until then, and its payment can be recorded after approval.",
+    noPaymentYet: "No payment has been recorded on this booking yet. If the customer has paid, record the payment (a payment typed while booking is only saved when the booking form says so).",
     awaitingNote: "This booking is waiting for a company admin to approve it. It is not counted anywhere (totals, seats, reports) and no payment can be recorded until it is approved.",
     approveBooking: "Approve booking",
     approveBookingTitle: "Approve this booking?",
