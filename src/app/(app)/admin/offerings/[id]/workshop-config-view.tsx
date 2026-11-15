@@ -93,7 +93,7 @@ export function WorkshopConfigView({ offering, tz, t, locale, prices, history, g
                     <td className="px-3 py-2">
                       <div className="flex justify-center gap-0.5">
                       <GroupDialog offeringId={id} group={{ id: g.id, name: g.name, sessions: g.sessions.join("\n"), capacity: g.capacity == null ? "" : String(g.capacity), attendance: (g.attendance ?? "") as "" | "online" | "offline", isActive: g.is_active }}
-                        trigger={<Button variant="ghost" size="icon-sm" aria-label={w.editGroup} title={w.editGroup}><Pencil /></Button>} />
+                        trigger={<Button variant="ghost" size="icon-sm" aria-label={w.editGroup} title={w.editGroup} data-testid="edit-group"><Pencil /></Button>} />
                       <FinishGroupButton offeringId={id} groupId={g.id} finished={Boolean(g.finished_at)} />
                       <DeleteGroupButton offeringId={id} groupId={g.id} name={g.name} />
                       </div>
