@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { FormError, SelectField, SubmitButton, TextareaField, TextField } from "@/components/form/fields";
+import { SingleDateField } from "@/components/form/multi-date-field";
 import { useActionForm } from "@/components/form/use-action-form";
 import { useI18n } from "@/components/i18n-provider";
 import { createBooking, workshopOptions, type GroupOption, type PriceOption } from "@/actions/bookings";
@@ -45,12 +46,18 @@ export function BookingForm({ workshops }: { workshops: WorkshopChoice[] }) {
   // what was said about the group / paying in full waits here until the workshop's groups and prices are loaded
   const pendingVoice = useRef<SpeechBooking | null>(null);
 
+  // the booking date: today at the latest, 90 days back at the earliest (the database applies the same limits in the company's time zone)
+  const [bookedMin, bookedMax] = useMemo(() => {
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const now = new Date();
+    return [iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90)), iso(now)];
+  }, []);
   const schema = useMemo(() => buildBookingSchema({ discount: b.invalidDiscount, reason: b.reasonRequired, money: b.moneyInvalid }), [b]);
   const workshop = workshops.find((w) => w.id === offeringId) ?? null;
 
   const { form, submit, pending } = useActionForm({
     schema,
-    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", discountType: "none", discountValue: "", discountReason: "", note: "", paidNow: "" },
+    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", discountType: "none", discountValue: "", discountReason: "", note: "", bookedOn: "", paidNow: "" },
     // a payment needs its proof: the approver checks the amount the employee typed against the receipt
     action: async (values) => {
       if (values.paidNow != null && !proof) { setProofError(t.payments.proofRequired); return { ok: false as const, error: t.payments.proofRequired, errorKey: "payment.proof_required" }; }
@@ -308,6 +315,7 @@ export function BookingForm({ workshops }: { workshops: WorkshopChoice[] }) {
         <TextField control={form.control} name="paidNow" label={`${b.paidNow}${price ? ` (${price.currency})` : ""}`} description={b.paidNowHint} inputMode="decimal" dir="ltr" />
         {paidInvalid && <p className="text-sm text-destructive" role="alert">{b.paidTooMuch}</p>}
         {paid != null && !Number.isNaN(paid) && <ProofField file={proof} onFile={setProof} error={proofError} onError={setProofError} required />}
+        <SingleDateField control={form.control} name="bookedOn" label={b.bookedOn} description={b.bookedOnHint} min={bookedMin} max={bookedMax} />
         <TextareaField control={form.control} name="note" label={b.note} rows={2} />
         <div className="flex justify-end">
           <SubmitButton pending={pending} disabled={!o || !price || !groupId || (preview !== null && !preview.valid) || paidInvalid}>{b.create}</SubmitButton>

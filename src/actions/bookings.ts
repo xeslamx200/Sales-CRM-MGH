@@ -47,7 +47,7 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
     await requirePermission(grp?.company_id, "create_bookings");
     const id = must(await supabase.rpc("create_workshop_booking", {
       p_contact_id: d.contactId, p_group_id: d.groupId, p_country: d.country, p_attendance: d.attendance,
-      p_discount_type: d.discountType, p_discount_value: d.discountValue ?? 0, p_discount_reason: d.discountReason ?? undefined, p_note: d.note ?? undefined,
+      p_booked_on: d.bookedOn ?? undefined, p_discount_type: d.discountType, p_discount_value: d.discountValue ?? 0, p_discount_reason: d.discountReason ?? undefined, p_note: d.note ?? undefined,
     }));
     revalidatePath("/bookings");
     // optional first payment: a separate, checked call (the booking exists either way; a refused payment is reported, never hidden)

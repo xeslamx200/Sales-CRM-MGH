@@ -35,6 +35,8 @@ export function buildBookingSchema(m: BookingMessages) {
     discountValue: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => parseMoney(v)),
     discountReason: text(300),
     note: text(1000),
+    /** The day the booking was made (not in the future; the database also limits how far back). Empty = today. */
+    bookedOn: isoDate,
     /** Optional first payment recorded together with the booking (booking currency; the database refuses more than what remains). */
     paidNow: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => parseMoney(v)),
   }).superRefine((d, ctx) => {

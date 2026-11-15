@@ -1613,7 +1613,7 @@ isOneToOne: false
             }[]
                            },
 "create_workshop_booking":
-{ Args: { "p_attendance": string,"p_contact_id": string,"p_country": string,"p_discount_reason"?: string,"p_discount_type"?: string,"p_discount_value"?: number,"p_group_id": string,"p_note"?: string }; Returns: string
+{ Args: { "p_attendance": string,"p_booked_on"?: string,"p_contact_id": string,"p_country": string,"p_discount_reason"?: string,"p_discount_type"?: string,"p_discount_value"?: number,"p_group_id": string,"p_note"?: string }; Returns: string
                            },
 "approve_workshop_booking":
 { Args: { "p_id": string,"p_note"?: string }; Returns: undefined

@@ -37,7 +37,25 @@ export function MultiDateField<T extends FieldValues>({ control, name, label, de
   );
 }
 
-function DaysCalendar({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+/** Pick ONE day on the same calendar (optionally between min and max, both "YYYY-MM-DD"). The value is the day or "" when none is chosen. */
+export function SingleDateField<T extends FieldValues>({ control, name, label, description, min, max }: { control: Control<T>; name: Path<T>; label: string; description?: string; min?: string; max?: string }) {
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel>{label}</FieldLabel>
+          <DaysCalendar value={toList(field.value).slice(0, 1)} onChange={(v) => field.onChange(v[0] ?? "")} single min={min} max={max} />
+          {description && <FieldDescription>{description}</FieldDescription>}
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  );
+}
+
+function DaysCalendar({ value, onChange, single, min, max }: { value: string[]; onChange: (v: string[]) => void; single?: boolean; min?: string; max?: string }) {
   const { t, locale } = useI18n();
   const w = t.workshopConfig;
   const today = useMemo(() => new Date(), []);
@@ -56,6 +74,7 @@ function DaysCalendar({ value, onChange }: { value: string[]; onChange: (v: stri
 
   const step = (delta: number) => setView((v) => { const d = new Date(Date.UTC(v.y, v.m + delta, 1)); return { y: d.getUTCFullYear(), m: d.getUTCMonth() }; });
   const toggle = (day: string) => {
+    if (single) { onChange(selected.has(day) ? [] : [day]); return; }
     if (selected.has(day)) onChange(value.filter((x) => x !== day));
     else if (value.length < MAX_DAYS) onChange([...value, day].sort());
   };
@@ -78,18 +97,19 @@ function DaysCalendar({ value, onChange }: { value: string[]; onChange: (v: stri
             if (d === null) return <span key={`e${i}`} />;
             const day = iso(view.y, view.m, d);
             const on = selected.has(day);
+            const off = Boolean((min && day < min) || (max && day > max));
             return (
               <button
-                key={day} type="button" onClick={() => toggle(day)} aria-pressed={on} data-day={day}
+                key={day} type="button" onClick={() => toggle(day)} aria-pressed={on} data-day={day} disabled={off}
                 aria-label={new Intl.DateTimeFormat(tag, { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}
                 className={cn("ltr-nums flex h-9 items-center justify-center rounded-lg text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  on ? "bg-primary font-semibold text-primary-foreground" : "hover:bg-muted", day === todayIso && !on && "ring-1 ring-primary/60")}
+                  on ? "bg-primary font-semibold text-primary-foreground" : "hover:bg-muted", day === todayIso && !on && "ring-1 ring-primary/60", off && "pointer-events-none opacity-30")}
               >{d}</button>
             );
           })}
         </div>
       </div>
-      {value.length === 0 ? <p className="text-xs text-muted-foreground">{w.noDaysChosen}</p> : (
+      {single ? null : value.length === 0 ? <p className="text-xs text-muted-foreground">{w.noDaysChosen}</p> : (
         <div className="flex flex-wrap items-center gap-1.5" data-testid="chosen-days">
           {value.map((d) => (
             <span key={d} className="ltr-nums inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs" dir="ltr">
@@ -100,7 +120,7 @@ function DaysCalendar({ value, onChange }: { value: string[]; onChange: (v: stri
           <button type="button" onClick={() => onChange([])} className="text-xs text-primary hover:underline">{w.clearDays}</button>
         </div>
       )}
-      {value.length >= MAX_DAYS && <p className="text-xs text-muted-foreground">{w.maxDays}</p>}
+      {!single && value.length >= MAX_DAYS && <p className="text-xs text-muted-foreground">{w.maxDays}</p>}
     </div>
   );
 }
