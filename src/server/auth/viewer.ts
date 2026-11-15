@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/server/supabase/server";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, getDictionary, isLocale, type Dictionary, type Locale } from "@/i18n";
 import type { Enums } from "@/types/database";
-import { parseDenied, type CustomRole, type PermissionKey } from "@/lib/permissions";
+import { parseDenied, parseGrants, type AdminArea, type CustomRole, type PermissionKey } from "@/lib/permissions";
 
 export const COMPANY_COOKIE = "crm_company";
 export const ALL_COMPANIES = "all";
@@ -25,7 +25,7 @@ export type ViewerCompany = {
   /** The custom role of the person in this company (it can only take pages and actions away from the base role). */
   customRole: CustomRole | null;
   /** Pages hidden and actions switched off for this person in this company: their built-in role's restrictions plus their custom role's. */
-  restrict: { hiddenNav: string[]; denied: PermissionKey[] };
+  restrict: { hiddenNav: string[]; denied: PermissionKey[]; grants: AdminArea[] };
 };
 
 export type Viewer = {
@@ -74,15 +74,16 @@ export const getViewer = cache(async (): Promise<Viewer> => {
   }
   const roleBy = new Map((memberships ?? []).map((m) => [m.company_id, m.role]));
   const customBy = new Map((memberships ?? []).flatMap((m) => m.custom_role
-    ? [[m.company_id, { id: m.custom_role.id, name: m.custom_role.name, hiddenNav: m.custom_role.hidden_nav, denied: parseDenied(m.custom_role.permissions) } satisfies CustomRole] as const] : []));
+    ? [[m.company_id, { id: m.custom_role.id, name: m.custom_role.name, hiddenNav: m.custom_role.hidden_nav, denied: parseDenied(m.custom_role.permissions), grants: parseGrants(m.custom_role.permissions) } satisfies CustomRole] as const] : []));
   // what the company restricted for the person's built-in role (company_builtin_roles), added to what their custom role restricts: both only take away
   const builtinBy = new Map((builtin ?? []).map((b) => [`${b.company_id}:${b.role}`, b]));
-  const restrictionOf = (companyId: string, role: Role | null): { hiddenNav: string[]; denied: PermissionKey[] } => {
+  const restrictionOf = (companyId: string, role: Role | null): { hiddenNav: string[]; denied: PermissionKey[]; grants: AdminArea[] } => {
     const b = role ? builtinBy.get(`${companyId}:${role}`) : undefined;
     const c = customBy.get(companyId);
     return {
       hiddenNav: [...new Set([...(b?.hidden_nav ?? []), ...(c?.hiddenNav ?? [])])],
       denied: [...new Set([...parseDenied(b?.permissions), ...(c?.denied ?? [])])],
+      grants: role === "company_admin" ? [] : [...new Set([...parseGrants(b?.permissions), ...(c?.grants ?? [])])],
     };
   };
   const list: ViewerCompany[] = (companies ?? [])
@@ -149,6 +150,17 @@ export function can(viewer: Viewer, companyId: string | null | undefined, key: P
   const c = viewer.companies.find((x) => x.id === companyId);
   if (!c || c.role === "company_admin") return true;
   return !c.restrict.denied.includes(key);
+}
+
+/** May the viewer change this administration area in this company? Company admins always; other roles only when the company granted the area to their role. */
+export function canAdmin(viewer: Viewer, companyId: string | null | undefined, area: AdminArea): boolean {
+  if (isAdminOf(viewer, companyId)) return true;
+  return Boolean(viewer.companies.find((c) => c.id === companyId)?.restrict.grants.includes(area));
+}
+
+/** Is the area open to the viewer in at least one company? */
+export function canAdminAny(viewer: Viewer, area: AdminArea): boolean {
+  return viewer.isSuperAdmin || viewer.companies.some((c) => c.role === "company_admin" || c.restrict.grants.includes(area));
 }
 
 /** Pages hidden from this person in the active company by their custom role. */

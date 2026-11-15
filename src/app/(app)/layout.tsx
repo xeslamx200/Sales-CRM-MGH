@@ -14,7 +14,8 @@ import { GlobalSearch } from "@/components/shell/global-search";
 import { NotificationsPopover } from "@/components/shell/notifications-popover";
 import { UserMenu } from "@/components/shell/user-menu";
 import { LanguageToggle } from "@/components/shell/language-toggle";
-import { getViewer, isAnyAdmin, isAnyManager, rolePagesHidden } from "@/server/auth/viewer";
+import { ADMIN_AREAS } from "@/lib/permissions";
+import { canAdminAny, getViewer, isAnyAdmin, isAnyManager, rolePagesHidden } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 
 // Browser tab: "<company name> CRM" (the company the user is working in), and "<page> · <company name> CRM" on the other pages.
@@ -49,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
       {brand.custom && <style dangerouslySetInnerHTML={{ __html: brandStyleText(brandCssVars(brand.colors)) }} />}
       <AppSidebar
-        access={{ anyAdmin: isAnyAdmin(viewer), anyManager: isAnyManager(viewer), superAdmin: viewer.isSuperAdmin }}
+        access={{ anyAdmin: isAnyAdmin(viewer), anyManager: isAnyManager(viewer), superAdmin: viewer.isSuperAdmin, adminAreas: ADMIN_AREAS.filter((a) => canAdminAny(viewer, a)) }}
         unreadInbox={unreadInbox.count ?? 0}
         hiddenHrefs={[...uiSettings.hiddenNav, ...rolePagesHidden(viewer)]}
         brandLogo={viewer.activeCompany && brand.hasLogo ? { src: logoUrl(viewer.activeCompany.id, brand.version), plate: brand.logoPlate } : brand.logoPlate ? { src: "/mgh-logo.png", plate: true } : null}

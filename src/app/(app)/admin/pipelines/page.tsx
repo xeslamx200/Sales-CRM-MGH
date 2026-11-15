@@ -4,15 +4,15 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { StatusBadge } from "@/components/app/status-badge";
-import { getViewer, isAdminOf, isAnyAdmin } from "@/server/auth/viewer";
+import { canAdmin, canAdminAny, getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { NewPipelineDialog, PipelineActions, StageDialog, StageMoveButtons } from "./pipeline-forms";
 
 export default async function PipelinesPage() {
   const viewer = await getViewer();
-  if (!isAnyAdmin(viewer)) notFound();
+  if (!canAdminAny(viewer, "pipelines")) notFound();
   const { t } = viewer;
-  const companies = viewer.companies.filter((c) => viewer.scopeCompanyIds.includes(c.id) && isAdminOf(viewer, c.id));
+  const companies = viewer.companies.filter((c) => viewer.scopeCompanyIds.includes(c.id) && canAdmin(viewer, c.id, "pipelines"));
   const supabase = await createClient();
   const { data, error } = await supabase.from("pipelines")
     .select("id, company_id, name, kind, is_default, is_active, stages:pipeline_stages(id, name, position, stage_type, probability, is_active)")

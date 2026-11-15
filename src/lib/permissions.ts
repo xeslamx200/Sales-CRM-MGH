@@ -5,8 +5,20 @@ export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 export const HIDEABLE_PAGES = ["/inbox", "/leads", "/contacts", "/bookings", "/workshops", "/performance", "/tasks", "/reports"] as const;
 export type HideablePage = (typeof HIDEABLE_PAGES)[number];
 
-/** A person's custom role as the application sees it: pages hidden from them and the switches turned off. */
-export type CustomRole = { id: string; name: string; hiddenNav: string[]; denied: PermissionKey[] };
+/** Administration areas a role can be given (stored in its permissions as {"admin_<area>": true}). Must match app.has_admin_grant (migration 1011). */
+export const ADMIN_AREAS = ["offerings", "pipelines"] as const;
+export type AdminArea = (typeof ADMIN_AREAS)[number];
+export const adminKey = (a: AdminArea) => `admin_${a}` as const;
+/** Where each area's page lives. */
+export const ADMIN_AREA_PATH: Record<AdminArea, string> = { offerings: "/admin/offerings", pipelines: "/admin/pipelines" };
+
+/** A person's custom role as the application sees it: pages hidden from them, the switches turned off and the administration areas granted. */
+export type CustomRole = { id: string; name: string; hiddenNav: string[]; denied: PermissionKey[]; grants: AdminArea[] };
+
+export function parseGrants(permissions: unknown): AdminArea[] {
+  if (typeof permissions !== "object" || permissions === null) return [];
+  return ADMIN_AREAS.filter((a) => (permissions as Record<string, unknown>)[adminKey(a)] === true);
+}
 
 export function parseDenied(permissions: unknown): PermissionKey[] {
   if (typeof permissions !== "object" || permissions === null) return [];

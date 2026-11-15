@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { StatusBadge } from "@/components/app/status-badge";
-import { getViewer, isAdminOf, isAnyAdmin } from "@/server/auth/viewer";
+import { canAdmin, canAdminAny, getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { formatCurrency } from "@/lib/format.ts";
 import { OfferingDialog } from "./offering-form";
@@ -13,9 +13,9 @@ import { OfferingDialog } from "./offering-form";
 /** Company catalogue of courses, workshops and services used to qualify WhatsApp leads. */
 export default async function OfferingsPage() {
   const viewer = await getViewer();
-  if (!isAnyAdmin(viewer)) notFound();
+  if (!canAdminAny(viewer, "offerings")) notFound();
   const { t } = viewer;
-  const companies = viewer.companies.filter((c) => viewer.scopeCompanyIds.includes(c.id) && isAdminOf(viewer, c.id));
+  const companies = viewer.companies.filter((c) => viewer.scopeCompanyIds.includes(c.id) && canAdmin(viewer, c.id, "offerings"));
   const supabase = await createClient();
   const { data, error } = await supabase.from("company_offerings")
     .select("id, company_id, name, kind, keywords, is_active, price_egp")

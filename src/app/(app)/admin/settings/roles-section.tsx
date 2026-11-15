@@ -10,14 +10,14 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog, FormDialog } from "@/components/app/dialogs";
 import { useI18n } from "@/components/i18n-provider";
 import { deleteRole, saveBuiltinRole, saveRole } from "@/actions/roles";
-import { HIDEABLE_PAGES, PERMISSION_KEYS, type HideablePage, type PermissionKey } from "@/lib/permissions";
+import { ADMIN_AREAS, HIDEABLE_PAGES, PERMISSION_KEYS, type AdminArea, type HideablePage, type PermissionKey } from "@/lib/permissions";
 import { fmt } from "@/i18n";
 import type { Enums } from "@/types/database";
 
 type Role = Enums<"app_role">;
-export type RoleRow = { id: string; name: string; base: Role; hiddenNav: string[]; denied: PermissionKey[]; members: number };
+export type RoleRow = { id: string; name: string; base: Role; hiddenNav: string[]; denied: PermissionKey[]; grants: AdminArea[]; members: number };
 /** A built-in role of the company and what the company restricted for it (nothing = as the system ships). */
-export type BuiltinRoleRow = { role: Role; hiddenNav: string[]; denied: PermissionKey[]; members: number };
+export type BuiltinRoleRow = { role: Role; hiddenNav: string[]; denied: PermissionKey[]; grants: AdminArea[]; members: number };
 const BASES: Role[] = ["sales_manager", "sales_agent", "cs_agent"];
 const box = "size-4 rounded border-input accent-primary";
 
@@ -113,14 +113,15 @@ function RoleForm({ companyId, role, onDone, builtin }: { companyId: string; rol
   const [base, setBase] = useState<Role>(role?.base ?? "sales_agent");
   const [hidden, setHidden] = useState<string[]>(builtin?.hiddenNav ?? role?.hiddenNav ?? []);
   const [denied, setDenied] = useState<PermissionKey[]>(builtin?.denied ?? role?.denied ?? []);
+  const [grants, setGrants] = useState<AdminArea[]>(builtin?.grants ?? role?.grants ?? []);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const flip = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const save = () => start(async () => {
     setError(null);
     const res = builtin
-      ? await saveBuiltinRole({ companyId, role: builtin.role, hiddenNav: hidden as HideablePage[], denied })
-      : await saveRole({ id: role?.id ?? null, companyId, name, base, hiddenNav: hidden as HideablePage[], denied });
+      ? await saveBuiltinRole({ companyId, role: builtin.role, hiddenNav: hidden as HideablePage[], denied, grants })
+      : await saveRole({ id: role?.id ?? null, companyId, name, base, hiddenNav: hidden as HideablePage[], denied, grants });
     if (!res.ok) { setError(res.error); return; }
     toast.success(r.saved);
     onDone();
@@ -166,6 +167,21 @@ function RoleForm({ companyId, role, onDone, builtin }: { companyId: string; rol
         </ul>
         <p className="text-xs text-muted-foreground">{r.actionsHint}</p>
       </fieldset>
+      {(builtin ? builtin.role !== "company_admin" : true) && (
+        <fieldset className="grid gap-1.5">
+          <legend className="mb-1 text-sm font-medium">{r.adminTitle}</legend>
+          <ul className="grid gap-1.5 sm:grid-cols-2">
+            {ADMIN_AREAS.map((a) => (
+              <li key={a}>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className={box} checked={grants.includes(a)} onChange={() => setGrants((g) => flip(g, a))} data-testid={`admin-${a}`} />{r.adminAreas[a]}
+                </label>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">{r.adminHint}</p>
+        </fieldset>
+      )}
       <DialogFooter>
         <Button type="button" onClick={save} disabled={pending || (!builtin && name.trim() === "")} data-testid="role-save">{t.common.save}</Button>
       </DialogFooter>

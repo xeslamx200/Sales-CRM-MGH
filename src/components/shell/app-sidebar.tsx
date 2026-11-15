@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useI18n } from "@/components/i18n-provider";
 
-export type NavAccess = { anyAdmin: boolean; anyManager: boolean; superAdmin: boolean };
+export type NavAccess = { anyAdmin: boolean; anyManager: boolean; superAdmin: boolean; adminAreas: readonly string[] };
 
 type Item = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; badge?: number };
 
@@ -41,8 +41,8 @@ export function AppSidebar({ access, unreadInbox, hiddenHrefs = [], brandLogo = 
     ...(access.anyAdmin ? [{ href: "/admin/users", label: t.nav.users, icon: Users }] : []),
     ...(access.anyManager ? [{ href: "/admin/teams", label: t.nav.teams, icon: UsersRound }] : []),
     ...(access.anyAdmin ? [{ href: "/admin/whatsapp", label: t.nav.whatsappNumbers, icon: Phone }] : []),
-    ...(access.anyAdmin ? [{ href: "/admin/pipelines", label: t.nav.pipelines, icon: Workflow }] : []),
-    ...(access.anyAdmin ? [{ href: "/admin/offerings", label: t.nav.offerings, icon: BookOpen }] : []),
+    ...(access.adminAreas.includes("pipelines") ? [{ href: "/admin/pipelines", label: t.nav.pipelines, icon: Workflow }] : []),
+    ...(access.adminAreas.includes("offerings") ? [{ href: "/admin/offerings", label: t.nav.offerings, icon: BookOpen }] : []),
     ...(access.anyAdmin ? [{ href: "/admin/audit", label: t.nav.audit, icon: ScrollText }] : []),
     ...(access.anyManager ? [{ href: "/contacts/duplicates", label: t.nav.duplicates, icon: Copy }] : []),
     ...(access.superAdmin ? [{ href: "/admin/system", label: t.nav.system, icon: Activity }] : []),

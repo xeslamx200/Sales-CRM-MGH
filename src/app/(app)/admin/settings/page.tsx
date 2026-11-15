@@ -10,7 +10,7 @@ import { getBranding, logoUrl } from "@/server/branding";
 import { BrandingForm } from "./branding-form";
 import { PeopleSection, type PersonAccount } from "./people-section";
 import { RolesSection, type BuiltinRoleRow, type RoleRow } from "./roles-section";
-import { parseDenied } from "@/lib/permissions";
+import { parseDenied, parseGrants } from "@/lib/permissions";
 import { ApproversForm, ExclusionRow, TargetCurrencyForm, TargetDefaultRow, UiSettingsForm, type PersonRow } from "./settings-forms";
 
 /** Everything a company admin can configure for the active company without touching the code. */
@@ -48,10 +48,10 @@ export default async function CompanySettingsPage() {
   }));
   const builtinList: BuiltinRoleRow[] = (["company_admin", "sales_manager", "sales_agent", "cs_agent"] as const).map((role) => {
     const row = (builtinRows.data ?? []).find((b) => b.role === role);
-    return { role, hiddenNav: row?.hidden_nav ?? [], denied: parseDenied(row?.permissions), members: allMembers.filter((m) => m.role === role).length };
+    return { role, hiddenNav: row?.hidden_nav ?? [], denied: parseDenied(row?.permissions), grants: parseGrants(row?.permissions), members: allMembers.filter((m) => m.role === role).length };
   });
   const roleList: RoleRow[] = (roleRows.data ?? []).map((r) => ({
-    id: r.id, name: r.name, base: r.base_role, hiddenNav: r.hidden_nav, denied: parseDenied(r.permissions),
+    id: r.id, name: r.name, base: r.base_role, hiddenNav: r.hidden_nav, denied: parseDenied(r.permissions), grants: parseGrants(r.permissions),
     members: (phoneRows.data ?? []).filter((x) => x.custom_role_id === r.id).length,
   }));
 
