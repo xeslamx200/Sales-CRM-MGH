@@ -1,11 +1,12 @@
 "use client";
+import { MultiDateField } from "@/components/form/multi-date-field";
 import { fmt } from "@/i18n";
 import { CheckCheck, RotateCcw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FieldGroup } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { CheckboxField, FormError, SelectField, SubmitButton, TextareaField, TextField } from "@/components/form/fields";
+import { CheckboxField, FormError, SelectField, SubmitButton, TextField } from "@/components/form/fields";
 import { useActionForm } from "@/components/form/use-action-form";
 import { ConfirmDialog, FormDialog } from "@/components/app/dialogs";
 import { useI18n } from "@/components/i18n-provider";
@@ -116,7 +117,7 @@ function GroupForm({ offeringId, group, onDone }: { offeringId: string; group?: 
       <FieldGroup>
         <FormError message={form.formState.errors.root?.message} />
         <TextField control={form.control} name="name" label={t.workshopConfig.groupName} />
-        <TextareaField control={form.control} name="sessions" label={t.workshopConfig.sessions} description={t.workshopConfig.sessionsHint} rows={4} />
+        <MultiDateField control={form.control} name="sessions" label={t.workshopConfig.sessions} description={t.workshopConfig.sessionsHint} />
         <TextField control={form.control} name="capacity" label={t.workshopConfig.capacity} description={t.workshopConfig.capacityHint} inputMode="numeric" dir="ltr" />
         <SelectField control={form.control} name="attendance" label={t.workshopConfig.attendance} emptyLabel={t.workshopConfig.anyAttendance}
           options={[{ value: "online", label: t.workshopConfig.online }, { value: "offline", label: t.workshopConfig.offline }]} />
