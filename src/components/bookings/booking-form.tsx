@@ -29,7 +29,7 @@ type VoiceItem = { key: string; label: string; value: string; ok: boolean };
  * Booking form: customer -> workshop -> group -> country + attendance (the configured price and currency appear) -> optional discount with a mandatory
  * reason -> a live summary (original, discount, final, who must approve). The database re-checks everything; nothing here is trusted.
  */
-export function BookingForm({ workshops }: { workshops: WorkshopChoice[] }) {
+export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops: WorkshopChoice[]; owners?: Record<string, { value: string; label: string }[]>; selfId?: string }) {
   const { t, locale } = useI18n();
   const b = t.bookings;
   const router = useRouter();
@@ -57,7 +57,7 @@ export function BookingForm({ workshops }: { workshops: WorkshopChoice[] }) {
 
   const { form, submit, pending } = useActionForm({
     schema,
-    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", discountType: "none", discountValue: "", discountReason: "", note: "", bookedOn: "", paidNow: "" },
+    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", discountType: "none", discountValue: "", discountReason: "", note: "", bookedOn: "", bookedBy: "", paidNow: "" },
     // a payment needs its proof: the approver checks the amount the employee typed against the receipt
     action: async (values) => {
       if (values.paidNow != null && !proof) { setProofError(t.payments.proofRequired); return { ok: false as const, error: t.payments.proofRequired, errorKey: "payment.proof_required" }; }
@@ -79,6 +79,7 @@ export function BookingForm({ workshops }: { workshops: WorkshopChoice[] }) {
 
   // customer search (debounced; the company comes from the chosen workshop, or the first one)
   const searchCompany = workshop?.companyId ?? workshops[0]?.companyId ?? "";
+  const ownerChoices = owners[searchCompany] ?? [];   // who I may book for in this company (empty = no choice shown)
   const q = query.trim();
   const key = `${searchCompany}:${q}`;
   useEffect(() => {
@@ -315,6 +316,10 @@ export function BookingForm({ workshops }: { workshops: WorkshopChoice[] }) {
         <TextField control={form.control} name="paidNow" label={`${b.paidNow}${price ? ` (${price.currency})` : ""}`} description={b.paidNowHint} inputMode="decimal" dir="ltr" />
         {paidInvalid && <p className="text-sm text-destructive" role="alert">{b.paidTooMuch}</p>}
         {paid != null && !Number.isNaN(paid) && <ProofField file={proof} onFile={setProof} error={proofError} onError={setProofError} required />}
+        {ownerChoices.length > 0 && (
+          <SelectField control={form.control} name="bookedBy" label={b.bookedFor} description={b.bookedForHint}
+            emptyLabel={b.bookedForMe} options={ownerChoices.filter((o) => o.value !== selfId)} />
+        )}
         <SingleDateField control={form.control} name="bookedOn" label={b.bookedOn} description={b.bookedOnHint} min={bookedMin} max={bookedMax} />
         <TextareaField control={form.control} name="note" label={b.note} rows={2} />
         <div className="flex justify-end">

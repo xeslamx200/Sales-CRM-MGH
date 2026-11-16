@@ -19,6 +19,12 @@ export default async function NewBookingPage() {
   ]);
   if (offerings.error) throw offerings.error;
   if (groups.error) throw groups.error;
+  // who the caller may book for, per company (empty = the choice is not shown: only a super admin and a sales manager have one)
+  const ownerLists = await Promise.all(companyIds.map(async (id) => {
+    const { data } = await supabase.rpc("booking_owner_options", { p_company_id: id });
+    return [id, (data ?? []).map((x) => ({ value: x.user_id, label: x.full_name }))] as const;
+  }));
+  const owners = Object.fromEntries(ownerLists.filter(([, list]) => list.length > 0));
   const withGroups = new Set((groups.data ?? []).map((g) => g.offering_id));
   const workshops = (offerings.data ?? []).filter((o) => withGroups.has(o.id)).map((o) => ({ id: o.id, companyId: o.company_id, name: o.name }));
   return (
@@ -28,7 +34,7 @@ export default async function NewBookingPage() {
       {workshops.length === 0 ? (
         <EmptyState title={t.bookings.noGroups} description={t.bookings.noGroupsHelp}
           action={isAnyAdmin(viewer) ? <Button asChild><Link href="/admin/offerings">{t.bookings.goAddGroups}</Link></Button> : undefined} />
-      ) : <BookingForm workshops={workshops} />}
+      ) : <BookingForm workshops={workshops} owners={owners} selfId={viewer.id} />}
     </>
   );
 }
