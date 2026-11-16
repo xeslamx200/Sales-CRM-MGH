@@ -2,7 +2,7 @@ import { BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/states";
 import { WorkshopBoard } from "@/components/workshops/workshop-board";
-import { getViewer, isAdminOf } from "@/server/auth/viewer";
+import { canAdmin, getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 
 /** The workshops of the active company with their groups and prices at a glance; each opens its own page. Search, filters, display modes and the saved order live in WorkshopBoard. */
@@ -32,7 +32,7 @@ export default async function WorkshopsPage() {
       {(offs.data ?? []).length === 0 ? <EmptyState icon={BookOpen} title={t.offerings.empty} /> : (
         <WorkshopBoard
           companyId={viewer.activeCompany?.id ?? null}
-          canArrange={Boolean(viewer.activeCompany) && isAdminOf(viewer, viewer.activeCompany?.id)}
+          canArrange={Boolean(viewer.activeCompany) && canAdmin(viewer, viewer.activeCompany?.id, "offerings")}
           items={(offs.data ?? []).map((o) => ({ id: o.id, name: o.name, kind: o.kind, isActive: o.is_active, groups: g.get(o.id) ?? 0, prices: p.get(o.id) ?? 0 }))}
         />
       )}

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getViewer, isAdminOf } from "@/server/auth/viewer";
+import { canAdmin, getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { WORKSHOP_COUNTRIES } from "@/lib/workshop-config.ts";
 import { WorkshopConfigView } from "./workshop-config-view";
@@ -14,7 +14,7 @@ export default async function WorkshopConfigPage({ params }: PageProps<"/admin/o
   if (!UUID.test(id)) notFound();
   const supabase = await createClient();
   const { data: off } = await supabase.from("company_offerings").select("id, company_id, name, is_active").eq("id", id).maybeSingle();
-  if (!off || !isAdminOf(viewer, off.company_id)) notFound();
+  if (!off || !canAdmin(viewer, off.company_id, "offerings")) notFound();
   const tz = viewer.companies.find((c) => c.id === off.company_id)?.timezone ?? "UTC";
 
   const [prices, history, groups, gaps] = await Promise.all([
