@@ -15,10 +15,13 @@ export function parseMoney(v: unknown): number | null {
   return Math.round(n * 100) / 100;
 }
 
+/** "0" (or 0): the customer has not paid anything yet. */
+const isZero = (v: unknown) => v === 0 || (typeof v === "string" && /^0+([.,]0+)?$/.test(digits(v)));
+
 const text = (max: number) => z.string().trim().max(max).nullable().optional().transform((v) => (v ? v : null));
 const isoDate = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().or(z.literal("").transform(() => null));
 
-export type BookingMessages = { discount: string; reason: string; money: string };
+export type BookingMessages = { discount: string; reason: string; money: string; paidRequired?: string };
 
 /**
  * A booking: an existing customer, one specific group, a country and an attendance type. The price and its currency are NEVER sent: the database
@@ -40,8 +43,9 @@ export function buildBookingSchema(m: BookingMessages) {
     /** The employee the booking belongs to (only a super admin / a sales manager for her team; the database decides). Empty = me. */
     bookedBy: z.union([z.uuid(), z.literal(""), z.null()]).optional().transform((v) => (v ? v : null)),
     /** Optional first payment recorded together with the booking (booking currency; the database refuses more than what remains). */
-    paidNow: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => parseMoney(v)),
+    paidNow: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (isZero(v) ? 0 : parseMoney(v))),
   }).superRefine((d, ctx) => {
+    if (d.paidNow == null && m.paidRequired) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.paidRequired });
     if (d.paidNow != null && Number.isNaN(d.paidNow)) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.money });
     if (d.discountType === "none") return;
     if (d.discountValue == null || Number.isNaN(d.discountValue) || (d.discountType === "percent" && d.discountValue > 100)) ctx.addIssue({ code: "custom", path: ["discountValue"], message: m.discount });

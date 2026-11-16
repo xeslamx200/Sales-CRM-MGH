@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fmt } from "@/i18n";
 import { DataTable, type Column } from "@/components/app/data-table";
 import { StatusBadge, type Tone } from "@/components/app/status-badge";
 import type { Dictionary, Locale } from "@/i18n";
@@ -51,7 +52,7 @@ export function BookingsTable({ rows, t, locale, tz, showWorkshop = true }: { ro
         </div>
       );
     } },
-    { key: "status", header: b.colStatus, cell: (r) => r.booking_status === "pending_approval" ? <StatusBadge tone="warning">{b.bookingStatus.pending_approval}</StatusBadge> : <PayBadge status={r.payment_status} t={t} /> },
+    { key: "status", header: b.colStatus, cell: (r) => Number(r.confirmed) + Number(r.pending) > Number(r.final_price) ? <div className="grid gap-0.5"><PayBadge status={r.payment_status} t={t} /><StatusBadge tone="warning">{fmt(b.overpaidShort, { amount: m(Number(r.confirmed) + Number(r.pending) - Number(r.final_price), r.currency) })}</StatusBadge></div> : r.booking_status === "pending_approval" ? <StatusBadge tone="warning">{b.bookingStatus.pending_approval}</StatusBadge> : <PayBadge status={r.payment_status} t={t} /> },
     { key: "dstatus", header: b.colDiscountStatus, cell: (r) => <DiscBadge status={r.discount_status} t={t} /> },
     { key: "date", header: b.colBooked, className: "whitespace-nowrap", cell: (r) => formatDate(r.booked_at, tz, locale) },
   ];

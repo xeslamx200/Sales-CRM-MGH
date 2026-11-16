@@ -102,6 +102,9 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
               </div>
             </div>
           )}
+          {Number(r.confirmed) + Number(r.pending) > Number(r.final_price) && (
+            <p className="mt-3 rounded-md bg-warning/10 px-3 py-2 text-sm" data-testid="overpaid-banner">{fmt(b.overpaidNote, { amount: m(Number(r.confirmed) + Number(r.pending) - Number(r.final_price)) })}</p>
+          )}
           {active && !hasMoney && Number(r.rejected) === 0 && (
             <p className="mt-3 rounded-md bg-warning/10 px-3 py-2 text-sm" data-testid="no-payment-yet">{b.noPaymentYet}</p>
           )}

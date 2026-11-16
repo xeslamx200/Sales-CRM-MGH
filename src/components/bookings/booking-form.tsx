@@ -52,7 +52,7 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
     const now = new Date();
     return [iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90)), iso(now)];
   }, []);
-  const schema = useMemo(() => buildBookingSchema({ discount: b.invalidDiscount, reason: b.reasonRequired, money: b.moneyInvalid }), [b]);
+  const schema = useMemo(() => buildBookingSchema({ discount: b.invalidDiscount, reason: b.reasonRequired, money: b.moneyInvalid, paidRequired: b.paidRequired }), [b]);
   const workshop = workshops.find((w) => w.id === offeringId) ?? null;
 
   const { form, submit, pending } = useActionForm({
@@ -60,7 +60,7 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
     defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", discountType: "none", discountValue: "", discountReason: "", note: "", bookedOn: "", bookedBy: "", paidNow: "" },
     // a payment needs its proof: the approver checks the amount the employee typed against the receipt
     action: async (values) => {
-      if (values.paidNow != null && !proof) { setProofError(t.payments.proofRequired); return { ok: false as const, error: t.payments.proofRequired, errorKey: "payment.proof_required" }; }
+      if (values.paidNow != null && values.paidNow > 0 && !proof) { setProofError(t.payments.proofRequired); return { ok: false as const, error: t.payments.proofRequired, errorKey: "payment.proof_required" }; }
       return createBooking(values);
     },
     onSuccess: async (data) => {
@@ -145,7 +145,8 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
   // what the customer owes today: the discounted price if it applies at once, otherwise the full price (a pending discount does not apply yet)
   const payable = preview ? (preview.valid && preview.level !== "manager" && preview.level !== "admin" ? preview.final : preview.list) : null;
   const paid = parseMoney(form.watch("paidNow"));
-  const paidInvalid = paid != null && (Number.isNaN(paid) || (payable != null && paid > payable));
+  const paidInvalid = paid != null && Number.isNaN(paid);
+  const overpaid = paid != null && !Number.isNaN(paid) && payable != null && paid > payable ? Math.round((paid - payable) * 100) / 100 : 0;
 
   /** Fill the form from what was said. Only what was clearly understood is filled; everything is reported so it can be reviewed. */
   const applyVoice = async (spoken: string) => {
@@ -314,8 +315,9 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
           <TextareaField control={form.control} name="discountReason" label={b.discountReason} description={b.discountReasonHint} rows={2} />
         )}
         <TextField control={form.control} name="paidNow" label={`${b.paidNow}${price ? ` (${price.currency})` : ""}`} description={b.paidNowHint} inputMode="decimal" dir="ltr" />
-        {paidInvalid && <p className="text-sm text-destructive" role="alert">{b.paidTooMuch}</p>}
-        {paid != null && !Number.isNaN(paid) && <ProofField file={proof} onFile={setProof} error={proofError} onError={setProofError} required />}
+        {paidInvalid && <p className="text-sm text-destructive" role="alert">{b.moneyInvalid}</p>}
+        {overpaid > 0 && price && <p className="rounded-md bg-warning/10 px-3 py-2 text-sm" data-testid="overpaid-note">{fmt(b.overpaidNote, { amount: formatCurrency(overpaid, price.currency, locale) })}</p>}
+        {paid != null && !Number.isNaN(paid) && paid > 0 && <ProofField file={proof} onFile={setProof} error={proofError} onError={setProofError} required />}
         {ownerChoices.length > 0 && (
           <SelectField control={form.control} name="bookedBy" label={b.bookedFor} description={b.bookedForHint}
             emptyLabel={b.bookedForMe} options={ownerChoices.filter((o) => o.value !== selfId)} />
