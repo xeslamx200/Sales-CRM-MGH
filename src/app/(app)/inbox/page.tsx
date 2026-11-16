@@ -117,7 +117,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/inbox">) {
         supabase.from("company_offerings").select("id, name, is_active").eq("company_id", conv.company_id).order("name"),
       ]);
       const lead: LeadPanelData | null = leadRow ? {
-        id: leadRow.id, title: leadRow.title, status: leadRow.status, interest: leadRow.interest,
+        id: leadRow.id, companyId: conv.company_id, title: leadRow.title, status: leadRow.status, interest: leadRow.interest,
         offeringId: leadRow.offering_id, offeringSource: leadRow.offering_source as LeadPanelData["offeringSource"],
         ownerId: leadRow.owner_id, ownerName: leadRow.owner?.full_name ?? null, autoCreated: leadRow.auto_created,
         archived: Boolean(leadRow.archived_at),

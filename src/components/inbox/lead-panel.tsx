@@ -4,12 +4,14 @@ import { Target, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, toneFor } from "@/components/app/status-badge";
 import { AssignDialog } from "@/components/crm/record-actions";
+import { ReminderDialog } from "@/components/crm/reminder-dialog";
 import { LeadQualification, type OfferingOption } from "@/components/crm/lead-qualification";
 import { useI18n } from "@/components/i18n-provider";
 import type { Enums } from "@/types/database";
 
 export type LeadPanelData = {
   id: string;
+  companyId: string;
   title: string;
   status: Enums<"lead_status">;
   interest: Enums<"lead_interest">;
@@ -42,6 +44,7 @@ export function LeadPanel({
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>{t.autoLeads.owner}: <span className="font-medium text-foreground">{lead.ownerName ?? t.common.unassigned}</span></span>
+          {!lead.archived && <ReminderDialog companyId={lead.companyId} leadId={lead.id} name={lead.title} size="xs" />}
           {canAssign && !lead.archived && (
             <AssignDialog id={lead.id} ownerId={lead.ownerId} options={assignees}
               trigger={<Button variant="outline" size="xs"><UserCog />{t.common.assign}</Button>} />

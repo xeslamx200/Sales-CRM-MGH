@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReminderDialog } from "@/components/crm/reminder-dialog";
 import { notFound } from "next/navigation";
 import { CalendarPlus, NotebookPen, Pencil, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ export default async function LeadPage({ params }: PageProps<"/leads/[id]">) {
               trigger={<Button variant="outline" size="sm"><UserCog />{t.common.assign}</Button>} />
             <ActivityDialog companyId={lead.company_id} leadId={lead.id} contactId={lead.contact_id}
               trigger={<Button variant="outline" size="sm"><NotebookPen />{t.records.logActivity}</Button>} />
+            <ReminderDialog companyId={lead.company_id} leadId={lead.id} contactId={lead.contact_id} name={lead.title} />
             <TaskDialog companyId={lead.company_id} leadId={lead.id} contactId={lead.contact_id}
               assignees={{ [lead.company_id]: people }} defaultAssignee={lead.owner_id ?? viewer.id}
               trigger={<Button variant="outline" size="sm"><CalendarPlus />{t.records.newTask}</Button>} />

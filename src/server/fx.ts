@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
-import { FX_SOURCE_NAME, FX_SOURCE_URL, parseExchangeRates, ratesNeedRefresh, type RateTable } from "@/lib/fx.ts";
+import { applyFixedRates, FX_SOURCE_NAME, FX_SOURCE_URL, parseExchangeRates, ratesNeedRefresh, type RateTable } from "@/lib/fx.ts";
 
 /** Rates as stored (any signed-in user may read public.fx_rates; the form uses them for the EGP preview). */
 export async function readRates(): Promise<RateTable> {
@@ -14,13 +14,17 @@ export async function readRates(): Promise<RateTable> {
 
 /** Fetch from the external source and store through the service-role RPC. Never throws: on any problem the stored rates stay as they are. */
 export async function refreshRates(): Promise<boolean> {
+  // the fixed rates (QAR) are stored even when the external source cannot be reached: they never go stale
+  let fetched: Record<string, number> | null = null;
   try {
     const res = await fetch(FX_SOURCE_URL, { signal: AbortSignal.timeout(8000), cache: "no-store", headers: { accept: "application/json" } });
-    if (!res.ok) return false;
-    const rates = parseExchangeRates(await res.json());
-    if (!rates) return false;
-    const { error } = await createAdminClient().rpc("upsert_fx_rates", { p_rates: rates, p_source: FX_SOURCE_NAME });
-    return !error;
+    if (res.ok) fetched = parseExchangeRates(await res.json());
+  } catch {
+    fetched = null;
+  }
+  try {
+    const { error } = await createAdminClient().rpc("upsert_fx_rates", { p_rates: applyFixedRates(fetched), p_source: FX_SOURCE_NAME });
+    return !error && fetched !== null;
   } catch {
     return false;
   }

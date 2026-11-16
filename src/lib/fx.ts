@@ -12,6 +12,12 @@ export const PAYMENT_CURRENCIES = ["EGP", "USD", "EUR", "GBP", "SAR", "AED", "KW
 export type PaymentCurrency = (typeof PAYMENT_CURRENCIES)[number];
 export const FOREIGN_CURRENCIES = PAYMENT_CURRENCIES.filter((c) => c !== "EGP");
 
+/** Rates the owner fixed: 1 unit = N EGP. They replace whatever the external source says (and are stored even when the source cannot be reached). */
+export const FX_FIXED_RATES: Readonly<Record<string, number>> = { QAR: 14.65 };
+export function applyFixedRates(rates: Record<string, number> | null): Record<string, number> {
+  return { ...(rates ?? {}), ...FX_FIXED_RATES };
+}
+
 export const FX_SOURCE_URL = "https://open.er-api.com/v6/latest/EGP";
 export const FX_SOURCE_NAME = "open.er-api.com (ExchangeRate-API)";
 /** Refresh when the stored rates are older than this; the database refuses to record a payment on a rate older than 48 hours. */

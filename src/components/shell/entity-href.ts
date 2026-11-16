@@ -5,6 +5,8 @@ export function entityHref(type: string | null, id: string | null): string | nul
     case "lead": return `/leads/${id}`;
     case "contact": return `/contacts/${id}`;
     case "task": return "/tasks";
+    case "workshop_booking": return `/bookings/${id}`;
+    case "payment": return "/payments";
     case "conversation": return `/inbox?c=${id}`;
     case "whatsapp_account": return "/admin/whatsapp";
     default: return null;

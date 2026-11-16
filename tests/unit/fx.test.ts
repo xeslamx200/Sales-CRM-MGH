@@ -58,3 +58,10 @@ test("workshop balance: only confirmed payments, price optional", () => {
   assert.deepEqual(workshopBalance(null, 300), { paid: 300, remaining: null, settled: false });
   assert.equal(workshopBalance(10000.1, 0.1).remaining, 10000);
 });
+
+test("fixed rates: the Qatari riyal is 14.65 whatever the source says, and is still there when the source is unreachable", async () => {
+  const { applyFixedRates } = await import("../../src/lib/fx.ts");
+  assert.equal(applyFixedRates({ QAR: 14.85, USD: 50 }).QAR, 14.65);
+  assert.equal(applyFixedRates({ QAR: 14.85, USD: 50 }).USD, 50);
+  assert.deepEqual(applyFixedRates(null), { QAR: 14.65 });
+});

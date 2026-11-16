@@ -13,6 +13,7 @@ import { CompanySwitcher } from "@/components/shell/company-switcher";
 import { GlobalSearch } from "@/components/shell/global-search";
 import { NotificationsPopover } from "@/components/shell/notifications-popover";
 import { UserMenu } from "@/components/shell/user-menu";
+import { RemindersWatcher } from "@/components/shell/reminders-watcher";
 import { LanguageToggle } from "@/components/shell/language-toggle";
 import { ADMIN_AREAS } from "@/lib/permissions";
 import { canAdminAny, getViewer, isAnyAdmin, isAnyManager, rolePagesHidden } from "@/server/auth/viewer";
@@ -48,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const timeZone = viewer.activeCompany?.timezone ?? viewer.companies[0]?.timezone ?? "UTC";
   return (
     <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
+      <RemindersWatcher />
       {brand.custom && <style dangerouslySetInnerHTML={{ __html: brandStyleText(brandCssVars(brand.colors)) }} />}
       <AppSidebar
         access={{ anyAdmin: isAnyAdmin(viewer), anyManager: isAnyManager(viewer), superAdmin: viewer.isSuperAdmin, adminAreas: ADMIN_AREAS.filter((a) => canAdminAny(viewer, a)) }}

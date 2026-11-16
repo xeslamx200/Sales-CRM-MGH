@@ -5,7 +5,6 @@ import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useI18n } from "@/components/i18n-provider";
 import { markNotificationsRead } from "@/actions/shell";
 import { fmt } from "@/i18n";
@@ -58,7 +57,7 @@ export function NotificationsPopover({
         {items.length === 0 ? (
           <p className="p-6 text-center text-sm text-muted-foreground">{t.notifications.empty}</p>
         ) : (
-          <ScrollArea className="max-h-96">
+          <div className="max-h-96 overflow-y-auto overscroll-contain">
             <ul className="divide-y">
               {items.map((n) => {
                 const href = entityHref(n.entity_type, n.entity_id);
@@ -80,7 +79,7 @@ export function NotificationsPopover({
                 );
               })}
             </ul>
-          </ScrollArea>
+          </div>
         )}
         {unread > 0 && (
           <p className="border-t px-3 py-1.5 text-xs text-muted-foreground">{fmt(t.notifications.unread, { count: unread })}</p>

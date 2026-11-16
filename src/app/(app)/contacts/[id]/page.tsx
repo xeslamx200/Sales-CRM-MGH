@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReminderDialog } from "@/components/crm/reminder-dialog";
 import { notFound } from "next/navigation";
 import { CalendarPlus, NotebookPen, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
           <>
             <ActivityDialog companyId={firstCompany} contactId={contact.id}
               trigger={<Button variant="outline" size="sm"><NotebookPen />{t.records.logActivity}</Button>} />
+            <ReminderDialog companyId={firstCompany} contactId={contact.id} name={contact.full_name} />
             <TaskDialog companyId={firstCompany} contactId={contact.id}
               assignees={Object.fromEntries(companyIds.map((cid) => [cid, peopleOptions(members, cid)]))} defaultAssignee={viewer.id}
               trigger={<Button variant="outline" size="sm"><CalendarPlus />{t.records.newTask}</Button>} />
