@@ -24,6 +24,11 @@ export const ATTACHMENT_TYPES: Readonly<Record<string, string>> = {
 export const ATTACHMENT_ENTITY_TYPES = ["lead", "payment"] as const;
 export type AttachmentEntityType = (typeof ATTACHMENT_ENTITY_TYPES)[number];
 
+/** Images and PDFs open in the browser (a payment receipt is looked at, not saved); every other type is served as a download. */
+export function isInlineAttachment(mimeType: string): boolean {
+  return isImageAttachment(mimeType) || mimeType === "application/pdf";
+}
+
 /** Images open in the browser; every other type is served as a download. */
 export function isImageAttachment(mimeType: string): boolean {
   return ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mimeType);

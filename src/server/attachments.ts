@@ -5,7 +5,7 @@ import { createAdminClient } from "@/server/supabase/admin";
 import { AppError } from "@/server/action";
 import { limitUser } from "@/server/rate-limit";
 import {
-  ATTACHMENT_TYPES, attachmentDisplayName, attachmentPath, checkAttachment, isImageAttachment, type AttachmentEntityType,
+  ATTACHMENT_TYPES, attachmentDisplayName, attachmentPath, checkAttachment, isInlineAttachment, type AttachmentEntityType,
 } from "@/lib/attachments.ts";
 
 export const ATTACHMENT_BUCKET = "attachments";
@@ -83,7 +83,7 @@ export async function attachmentUrl(id: string): Promise<string> {
   if (!row) throw new AppError("attachment.not_found");
   await limitUser(supabase, "attachment");
   const { data, error } = await createAdminClient().storage.from(ATTACHMENT_BUCKET)
-    .createSignedUrl(row.storage_path, SIGNED_URL_SECONDS, isImageAttachment(row.mime_type) ? {} : { download: row.file_name });
+    .createSignedUrl(row.storage_path, SIGNED_URL_SECONDS, isInlineAttachment(row.mime_type) ? {} : { download: row.file_name });
   if (error || !data) throw new AppError("attachment.not_found");
   return data.signedUrl;
 }

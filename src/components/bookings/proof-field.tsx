@@ -1,5 +1,7 @@
 "use client";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -42,6 +44,30 @@ export function ProofField({ file, onFile, error, onError, required }: {
       <FieldDescription>{t.payments.proofHint}</FieldDescription>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </Field>
+  );
+}
+
+/** "Add receipt" on a payment that has none: pick a photo or PDF, validate it, upload it and refresh the page. */
+export function AddProofButton({ paymentId }: { paymentId: string }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const pick = async (f: File | undefined) => {
+    if (!f) return;
+    if (!ATTACHMENT_TYPES[f.type]) { toast.error(t.attachments.unsupported); return; }
+    if (f.size > ATTACHMENT_MAX_BYTES) { toast.error(t.attachments.tooLarge); return; }
+    setBusy(true);
+    const ok = await uploadProof(paymentId, f);
+    setBusy(false);
+    if (ok) { toast.success(t.payments.proofAdded); router.refresh(); } else toast.error(t.payments.savedNoProof, { duration: Infinity, closeButton: true });
+  };
+  return (
+    <>
+      <input ref={input} type="file" className="sr-only" data-testid="add-proof-input" accept={Object.keys(ATTACHMENT_TYPES).join(",")}
+        onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
+      <Button type="button" variant="outline" size="xs" disabled={busy} onClick={() => input.current?.click()}><Paperclip />{t.payments.addProof}</Button>
+    </>
   );
 }
 

@@ -6,6 +6,8 @@ import { PageHeader, Section } from "@/components/app/page-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { DiscBadge, PayBadge } from "@/components/bookings/bookings-table";
 import { ApproveBookingDialog, ApproveDiscountDialog, CancelBookingDialog, RejectBookingDialog, RecordPaymentDialog, RejectDiscountDialog, RequestDiscountDialog } from "@/components/bookings/booking-actions";
+import { FileText, ImageIcon } from "lucide-react";
+import { AddProofButton } from "@/components/bookings/proof-field";
 import { getViewer, isAdminOf } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { countryName } from "@/lib/workshop-config.ts";
@@ -35,10 +37,10 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
   ]);
   if (pays.error) throw pays.error;
   const payIds = (pays.data ?? []).map((p) => p.payment_id);
-  const proofs = new Map<string, string>();
+  const proofs = new Map<string, { id: string; mime: string }>();
   if (payIds.length) {
-    const { data: files } = await supabase.from("attachments").select("id, entity_id").eq("entity_type", "payment").in("entity_id", payIds).order("created_at");
-    for (const f of files ?? []) if (!proofs.has(f.entity_id)) proofs.set(f.entity_id, f.id);
+    const { data: files } = await supabase.from("attachments").select("id, entity_id, mime_type").eq("entity_type", "payment").in("entity_id", payIds).order("created_at");
+    for (const f of files ?? []) if (!proofs.has(f.entity_id)) proofs.set(f.entity_id, { id: f.id, mime: f.mime_type });
   }
   const req = (reqs.data ?? []).find((x) => x.request_id === r.request_id) ?? null;
   const cur = r.currency;
@@ -152,8 +154,8 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
                     <td className="px-3 py-2"><StatusBadge tone={PAY_TONE[p.status as keyof typeof PAY_TONE] ?? "neutral"}>{t.payments.status[p.status as "pending" | "confirmed" | "rejected"] ?? p.status}</StatusBadge></td>
                     <td className="px-3 py-2">
                       {proofs.has(p.payment_id)
-                        ? <Button asChild variant="ghost" size="xs"><a href={`/api/attachments/${proofs.get(p.payment_id)}`} target="_blank" rel="noopener noreferrer">{t.payments.viewProof}</a></Button>
-                        : <span className="text-xs text-destructive">{t.payments.noProof}</span>}
+                        ? <Button asChild variant="ghost" size="xs"><a href={`/api/attachments/${proofs.get(p.payment_id)?.id}`} target="_blank" rel="noopener noreferrer">{proofs.get(p.payment_id)?.mime === "application/pdf" ? <FileText /> : <ImageIcon />}{t.payments.viewProof}</a></Button>
+                        : <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-destructive">{t.payments.noProof}</span><AddProofButton paymentId={p.payment_id} /></div>}
                     </td>
                     <td className="px-3 py-2">{p.recorded_by}</td>
                     <td className="px-3 py-2">{p.reviewed_by ?? "—"}</td>

@@ -40,7 +40,7 @@ function PaymentForm({ bookingId, currency, today, onDone }: { bookingId: string
       return recordBookingPayment(values);
     },
     onSuccess: async (data) => {
-      if (proof && !(await uploadProof(data.paymentId, proof))) toast.warning(t.payments.savedNoProof);
+      if (proof && !(await uploadProof(data.paymentId, proof))) toast.warning(t.payments.savedNoProof, { duration: Infinity, closeButton: true });
       else toast.success(t.bookings.paymentSaved);
       onDone(); router.refresh();
     },

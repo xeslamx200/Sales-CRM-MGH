@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ImageIcon, Plus, Wallet } from "lucide-react";
+import { FileText, ImageIcon, Plus, Wallet } from "lucide-react";
+import { AddProofButton } from "@/components/bookings/proof-field";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app/page-header";
 import { FilterBar } from "@/components/app/filter-bar";
@@ -53,18 +54,18 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/payment
   const rows = (data ?? []) as unknown as Row[];
 
   // proof images (one link per payment: the first file)
-  const proofOf = new Map<string, string>();
+  const proofOf = new Map<string, { id: string; mime: string }>();
   // Who may decide is enforced by the database (review_payment); this only decides which buttons to show.
   const companyIds = [...new Set(rows.map((r) => r.company_id))];
   // proof links and review permissions in one round trip
   const [files, verdicts, policies] = await Promise.all([
     rows.length
-      ? supabase.from("attachments").select("id, entity_id").eq("entity_type", "payment").in("entity_id", rows.map((r) => r.id)).order("created_at").then((r) => r.data ?? [])
-      : Promise.resolve([] as { id: string; entity_id: string }[]),
+      ? supabase.from("attachments").select("id, entity_id, mime_type").eq("entity_type", "payment").in("entity_id", rows.map((r) => r.id)).order("created_at").then((r) => r.data ?? [])
+      : Promise.resolve([] as { id: string; entity_id: string; mime_type: string }[]),
     Promise.all(companyIds.map(async (id) => [id, (await supabase.rpc("can_review_payments", { p_company_id: id })).data === true] as const)),
     supabase.from("payment_approval_policy").select("company_id").in("company_id", companyIds.length ? companyIds : [viewer.id]),
   ]);
-  for (const f of files) if (!proofOf.has(f.entity_id)) proofOf.set(f.entity_id, f.id);
+  for (const f of files) if (!proofOf.has(f.entity_id)) proofOf.set(f.entity_id, { id: f.id, mime: f.mime_type });
   const mayReview = new Set(verdicts.filter(([, ok]) => ok).map(([id]) => id));
   const restricted = new Set((policies.data ?? []).map((p) => p.company_id));
 
@@ -96,8 +97,8 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/payment
       </div>
     ) },
     { key: "proof", header: t.payments.colProof, cell: (r) => proofOf.has(r.id)
-      ? <Button asChild variant="ghost" size="xs"><a href={`/api/attachments/${proofOf.get(r.id)}`} target="_blank" rel="noopener noreferrer"><ImageIcon />{t.payments.viewProof}</a></Button>
-      : <span className="text-xs text-destructive">{t.payments.noProof}</span> },
+      ? <Button asChild variant="ghost" size="xs"><a href={`/api/attachments/${proofOf.get(r.id)?.id}`} target="_blank" rel="noopener noreferrer">{proofOf.get(r.id)?.mime === "application/pdf" ? <FileText /> : <ImageIcon />}{t.payments.viewProof}</a></Button>
+      : <div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-destructive">{t.payments.noProof}</span><AddProofButton paymentId={r.id} /></div> },
     { key: "by", header: t.payments.colBy, cell: (r) => r.creator?.full_name ?? "—" },
     { key: "actions", header: <span className="sr-only">{t.common.actions}</span>, cell: (r) => (
       <ReviewButtons id={r.id} status={r.status}

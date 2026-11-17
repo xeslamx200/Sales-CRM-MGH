@@ -45,3 +45,10 @@ test("formatBytes uses 1024-based units with Latin digits", () => {
   assert.equal(formatBytes(2048, "ar"), "2 ك.ب");
   assert.equal(formatBytes(null, "en"), "—");
 });
+
+test("receipts: images and PDFs open in the browser, other types download", async () => {
+  const { isInlineAttachment } = await import("../../src/lib/attachments.ts");
+  assert.equal(isInlineAttachment("application/pdf"), true);
+  assert.equal(isInlineAttachment("image/png"), true);
+  assert.equal(isInlineAttachment("application/msword"), false);
+});
