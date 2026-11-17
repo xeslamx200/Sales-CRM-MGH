@@ -17,6 +17,16 @@ export const workshopPriceSchema = z.object({
     }
     return n;
   }),
+  /** The price of ONE session (optional; empty = not sold separately). */
+  sessionPrice: z.union([z.number(), z.string(), z.null()]).optional().transform((v, ctx) => {
+    if (v == null || v === "") return null;
+    const n = num(v);
+    if (!Number.isFinite(n) || n <= 0 || n > 1_000_000_000 || Math.abs(n * 100 - Math.round(n * 100)) > 1e-6) {
+      ctx.addIssue({ code: "custom", message: "price.invalid_value" });
+      return z.NEVER;
+    }
+    return n;
+  }),
 });
 export type WorkshopPriceInput = z.input<typeof workshopPriceSchema>;
 

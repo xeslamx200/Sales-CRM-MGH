@@ -14,7 +14,7 @@ import { deactivateWorkshopPrice, saveWorkshopGroup, setWorkshopPrice, deleteWor
 import { workshopGroupSchema, workshopPriceSchema } from "@/schemas/workshops";
 import { WORKSHOP_COUNTRIES, WORKSHOP_CURRENCIES } from "@/lib/workshop-config.ts";
 
-type Price = { country: string; attendance: "online" | "offline"; currency: string; price: string };
+type Price = { country: string; attendance: "online" | "offline"; currency: string; price: string; sessionPrice?: string };
 
 export function PriceDialog({ offeringId, price, trigger }: { offeringId: string; price?: Price; trigger: React.ReactNode }) {
   const { t } = useI18n();
@@ -29,7 +29,7 @@ function PriceForm({ offeringId, price, onDone }: { offeringId: string; price?: 
   const { t, locale } = useI18n();
   const { form, submit, pending } = useActionForm({
     schema: workshopPriceSchema,
-    defaultValues: price ? { offeringId, ...price } : { offeringId, country: "QA", attendance: "online", currency: "QAR", price: "" },
+    defaultValues: price ? { offeringId, sessionPrice: "", ...price } : { offeringId, country: "QA", attendance: "online", currency: "QAR", price: "", sessionPrice: "" },
     action: setWorkshopPrice,
     successMessage: t.workshopConfig.saved,
     onSuccess: onDone,
@@ -46,6 +46,7 @@ function PriceForm({ offeringId, price, onDone }: { offeringId: string; price?: 
         <SelectField control={form.control} name="attendance" label={t.workshopConfig.attendance} options={attendances} disabled={fixed} />
         <SelectField control={form.control} name="currency" label={t.workshopConfig.currency} options={currencies} />
         <TextField control={form.control} name="price" label={t.workshopConfig.price} inputMode="decimal" dir="ltr" />
+        <TextField control={form.control} name="sessionPrice" label={t.workshopConfig.sessionPrice} description={t.workshopConfig.sessionPriceHint} inputMode="decimal" dir="ltr" />
         <DialogFooter><SubmitButton pending={pending}>{t.common.save}</SubmitButton></DialogFooter>
       </FieldGroup>
     </form>

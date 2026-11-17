@@ -10,7 +10,7 @@ import { FormError, SelectField, SubmitButton, TextareaField, TextField } from "
 import { SingleDateField } from "@/components/form/multi-date-field";
 import { useActionForm } from "@/components/form/use-action-form";
 import { useI18n } from "@/components/i18n-provider";
-import { createBooking, workshopOptions, type GroupOption, type PriceOption } from "@/actions/bookings";
+import { createBooking, existingBookings, workshopOptions, type ExistingBooking, type GroupOption, type PriceOption } from "@/actions/bookings";
 import { searchCustomers, type CustomerHit } from "@/actions/payments";
 import { buildBookingSchema, parseMoney } from "@/schemas/bookings";
 import { ProofField, uploadProof } from "@/components/bookings/proof-field";
@@ -45,6 +45,10 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
   const [voiceItems, setVoiceItems] = useState<VoiceItem[] | null>(null);
   // what was said about the group / paying in full waits here until the workshop's groups and prices are loaded
   const pendingVoice = useRef<SpeechBooking | null>(null);
+  // the employee's "yes, this customer may be booked again in this group" (read by the submit action, so it lives in a ref as well)
+  const [confirmed, setConfirmed] = useState("");
+  const confirmRef = useRef(false);
+  const [existing, setExisting] = useState<{ key: string; rows: ExistingBooking[] } | null>(null);
 
   // the booking date: today at the latest, 90 days back at the earliest (the database applies the same limits in the company's time zone)
   const [bookedMin, bookedMax] = useMemo(() => {
@@ -57,11 +61,11 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
 
   const { form, submit, pending } = useActionForm({
     schema,
-    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", discountType: "none", discountValue: "", discountReason: "", note: "", bookedOn: "", bookedBy: "", paidNow: "" },
+    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", kind: "full", sessionDate: "", discountType: "none", discountValue: "", discountReason: "", note: "", bookedOn: "", bookedBy: "", paidNow: "" },
     // a payment needs its proof: the approver checks the amount the employee typed against the receipt
     action: async (values) => {
       if (values.paidNow != null && values.paidNow > 0 && !proof) { setProofError(t.payments.proofRequired); return { ok: false as const, error: t.payments.proofRequired, errorKey: "payment.proof_required" }; }
-      return createBooking(values);
+      return createBooking({ ...values, sessionDate: values.kind === "session" ? values.sessionDate : null, confirmRepeat: confirmRef.current });
     },
     onSuccess: async (data) => {
       if (data.paymentError) toast.warning(`${b.createdPaymentFailed} ${data.paymentError}`, { duration: Infinity, closeButton: true });   // stays until closed: a missed payment is money
@@ -76,6 +80,23 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
   const country = form.watch("country");
   const attendance = form.watch("attendance");
   const groupId = form.watch("groupId");
+  const kind = form.watch("kind");
+  const sessionDate = form.watch("sessionDate");
+  const contactId = form.watch("contactId");
+  // what this customer already has in this group (the same customer may pay more than once; the employee confirms it)
+  const existKey = contactId && groupId ? `${contactId}:${groupId}` : "";
+  useEffect(() => {
+    if (!existKey) return;
+    let live = true;
+    void existingBookings({ contactId, groupId }).then((r) => { if (live) setExisting({ key: existKey, rows: r.ok ? r.data : [] }); });
+    return () => { live = false; };
+  }, [existKey, contactId, groupId]);
+  const existingRows = existing && existing.key === existKey ? existing.rows : [];
+  // a repeat = the whole workshop again, a booking over a whole-workshop one, or the same session again
+  const conflicts = existingRows.filter((x) => kind === "full" || x.kind === "full" || x.sessionDate === sessionDate);
+  const confirmKey = `${existKey}:${kind}:${kind === "session" ? sessionDate : ""}`;
+  const confirmRepeat = conflicts.length > 0 && confirmed === confirmKey;
+  useEffect(() => { confirmRef.current = confirmRepeat; }, [confirmRepeat]);
 
   // customer search (debounced; the company comes from the chosen workshop, or the first one)
   const searchCompany = workshop?.companyId ?? workshops[0]?.companyId ?? "";
@@ -141,7 +162,8 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
   // a group limited to one attendance type forces it
   useEffect(() => { if (group?.attendance && group.attendance !== attendance) form.setValue("attendance", group.attendance); }, [group, attendance, form]);
   const price = o?.prices.find((p) => p.country === country && p.attendance === attendance) ?? null;
-  const preview = previewBooking(price?.price ?? null, discountType, parseMoney(discountValue) ?? null);
+  const basePrice = price ? (kind === "session" ? price.sessionPrice : price.price) : null;   // the workshop price or the price of one session
+  const preview = previewBooking(basePrice, discountType, parseMoney(discountValue) ?? null);
   // what the customer owes today: the discounted price if it applies at once, otherwise the full price (a pending discount does not apply yet)
   const payable = preview ? (preview.valid && preview.level !== "manager" && preview.level !== "admin" ? preview.final : preview.list) : null;
   const paid = parseMoney(form.watch("paidNow"));
@@ -290,7 +312,7 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
           o.groups.length === 0 ? <p className="text-sm text-destructive">{b.noGroups}</p> : (
             <Field data-invalid={Boolean(form.formState.errors.groupId)}>
               <FieldLabel htmlFor="group-select">{b.group}</FieldLabel>
-              <select id="group-select" value={groupId} onChange={(e) => form.setValue("groupId", e.target.value, { shouldValidate: true })}
+              <select id="group-select" value={groupId} onChange={(e) => { form.setValue("groupId", e.target.value, { shouldValidate: true }); form.setValue("sessionDate", ""); }}
                 className="h-9 w-full rounded-md border bg-background px-3 text-sm" aria-invalid={Boolean(form.formState.errors.groupId)}>
                 <option value="">{b.pickGroup}</option>
                 {o.groups.map((g) => <option key={g.id} value={g.id} disabled={g.capacity != null && g.booked >= g.capacity}>{seatsLabel(g)}</option>)}
@@ -305,6 +327,15 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
           <SelectField control={form.control} name="attendance" label={b.attendance} disabled={Boolean(group?.attendance)}
             options={[{ value: "online", label: b.online }, { value: "offline", label: b.offline }]} />
         </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SelectField control={form.control} name="kind" label={b.kind} options={[{ value: "full", label: b.kindFull }, { value: "session", label: b.kindSession }]} />
+          {kind === "session" && (
+            <SelectField control={form.control} name="sessionDate" label={b.sessionPick} emptyLabel={group ? b.pickSession : b.pickGroup} disabled={!group}
+              options={(group?.sessions ?? []).map((d) => ({ value: d, label: formatDate(d, "UTC", locale) }))} />
+          )}
+        </div>
+        {kind === "session" && price && price.sessionPrice == null && <p className="text-sm text-destructive" role="alert" data-testid="session-price-missing">{b.sessionPriceMissing}</p>}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <SelectField control={form.control} name="discountType" label={b.discount}
@@ -324,8 +355,30 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
         )}
         <SingleDateField control={form.control} name="bookedOn" label={b.bookedOn} description={b.bookedOnHint} min={bookedMin} max={bookedMax} />
         <TextareaField control={form.control} name="note" label={b.note} rows={2} />
+        {existingRows.length > 0 && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100" data-testid="repeat-note" role="status">
+            <p className="font-medium">{b.repeatTitle}</p>
+            <ul className="mt-1.5 grid gap-1">
+              {existingRows.map((x) => (
+                <li key={x.id}>
+                  <b>{x.kind === "session" ? `${b.kindSession}${x.sessionDate ? ` · ${formatDate(x.sessionDate, "UTC", locale)}` : ""}` : b.kindFull}</b>
+                  {" — "}<span className="ltr-nums">{formatCurrency(x.finalPrice, x.currency, locale)}</span>
+                  {" — "}{b.bookingStatus[x.status as keyof typeof b.bookingStatus] ?? x.status}
+                  {x.owner ? ` — ${x.owner}` : ""}{" — "}{formatDate(x.createdAt, "UTC", locale)}
+                </li>
+              ))}
+            </ul>
+            {conflicts.length > 0 && (
+              <label className="mt-2.5 flex cursor-pointer items-start gap-2 font-medium">
+                <input type="checkbox" className="mt-1 size-4" checked={confirmRepeat} data-testid="repeat-confirm"
+                  onChange={(e) => setConfirmed(e.target.checked ? confirmKey : "")} />
+                <span>{b.repeatConfirm}</span>
+              </label>
+            )}
+          </div>
+        )}
         <div className="flex justify-end">
-          <SubmitButton pending={pending} disabled={!o || !price || !groupId || (preview !== null && !preview.valid) || paidInvalid}>{b.create}</SubmitButton>
+          <SubmitButton pending={pending} disabled={!o || !price || basePrice == null || !groupId || (kind === "session" && !sessionDate) || (conflicts.length > 0 && !confirmRepeat) || (preview !== null && !preview.valid) || paidInvalid}>{b.create}</SubmitButton>
         </div>
       </FieldGroup>
 

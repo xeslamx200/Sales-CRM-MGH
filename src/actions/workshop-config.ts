@@ -17,6 +17,8 @@ export async function setWorkshopPrice(input: WorkshopPriceInput): Promise<Actio
     check(await supabase.rpc("set_workshop_price", {
       p_offering_id: d.offeringId, p_country: d.country, p_attendance: d.attendance, p_currency: d.currency, p_price: d.price,
     }));
+    // the price of one session lives on the same row: set (or cleared) right after the workshop price
+    check(await supabase.rpc("set_workshop_session_price", { p_offering_id: d.offeringId, p_country: d.country, p_attendance: d.attendance, p_price: (d.sessionPrice ?? null) as unknown as number }));
     revalidatePath(`/admin/offerings/${d.offeringId}`);
     return null;
   });

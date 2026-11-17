@@ -28,7 +28,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
   const detail = await supabase.rpc("booking_detail", { p_booking_id: id });
   if (detail.error || !detail.data?.[0]) notFound();
   const r = detail.data[0];
-  const { data: own } = await supabase.from("workshop_bookings").select("company_id").eq("id", id).maybeSingle();
+  const { data: own } = await supabase.from("workshop_bookings").select("company_id, booking_kind, session_date").eq("id", id).maybeSingle();
   const companyId = own?.company_id;
   const tz = viewer.companies.find((c) => c.id === companyId)?.timezone ?? "UTC";
   const [pays, reqs] = await Promise.all([
@@ -70,6 +70,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
             <Item label={b.group} value={<><span dir="auto">{r.group_name}</span> · <span className="ltr-nums" dir="ltr">{formatDate(r.group_starts_on, "UTC", locale)}</span></>} />
             <Item label={b.country} value={countryName(r.country, locale)} />
             <Item label={b.attendance} value={r.attendance === "online" ? b.online : b.offline} />
+            <Item label={b.kind} value={own?.booking_kind === "session" ? `${b.kindSession}${own.session_date ? ` · ${formatDate(own.session_date, "UTC", locale)}` : ""}` : b.kindFull} />
             <Item label={b.colBooked} value={formatDate(r.booked_at, tz, locale)} />
             <Item label={b.recordedBy} value={r.recorded_by} />
             <Item label={b.colStatus} value={b.bookingStatus[r.booking_status as keyof typeof b.bookingStatus] ?? r.booking_status} />

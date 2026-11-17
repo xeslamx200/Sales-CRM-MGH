@@ -17,7 +17,8 @@ import { z } from "zod";
 // functions of migrations 985 / 986. These actions validate the shape, call them with the user's own session, and translate errors.
 
 export type GroupOption = { id: string; name: string; sessions: string[]; capacity: number | null; booked: number; attendance: "online" | "offline" | null };
-export type PriceOption = { country: string; attendance: "online" | "offline"; currency: string; price: number };
+export type PriceOption = { country: string; attendance: "online" | "offline"; currency: string; price: number; sessionPrice: number | null };
+export type ExistingBooking = { id: string; kind: "full" | "session"; sessionDate: string | null; status: string; finalPrice: number; currency: string; createdAt: string; owner: string | null };
 
 /** Active groups (with seats taken) and active prices of one workshop, for the booking form. */
 export async function workshopOptions(input: z.input<typeof workshopOptionsSchema>): Promise<ActionResult<{ groups: GroupOption[]; prices: PriceOption[] }>> {
@@ -26,7 +27,7 @@ export async function workshopOptions(input: z.input<typeof workshopOptionsSchem
     const [groups, stats, prices] = await Promise.all([
       supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active").eq("offering_id", offeringId).eq("is_active", true).order("starts_on"),
       supabase.rpc("workshop_group_stats", { p_offering_id: offeringId }),
-      supabase.from("workshop_prices").select("country, attendance, currency, price").eq("offering_id", offeringId).eq("is_active", true).order("country"),
+      supabase.from("workshop_prices").select("country, attendance, currency, price, session_price").eq("offering_id", offeringId).eq("is_active", true).order("country"),
     ]);
     if (groups.error) throw groups.error;
     if (stats.error) throw stats.error;
@@ -34,8 +35,18 @@ export async function workshopOptions(input: z.input<typeof workshopOptionsSchem
     const booked = new Map((stats.data ?? []).map((s) => [s.group_id, Number(s.booked)]));
     return {
       groups: (groups.data ?? []).map((g) => ({ id: g.id, name: g.name, sessions: g.sessions, capacity: g.capacity, booked: booked.get(g.id) ?? 0, attendance: g.attendance as GroupOption["attendance"] })),
-      prices: (prices.data ?? []).map((p) => ({ country: p.country, attendance: p.attendance as PriceOption["attendance"], currency: p.currency, price: Number(p.price) })),
+      prices: (prices.data ?? []).map((p) => ({ country: p.country, attendance: p.attendance as PriceOption["attendance"], currency: p.currency, price: Number(p.price), sessionPrice: p.session_price == null ? null : Number(p.session_price) })),
     };
+  });
+}
+
+const existingSchema = z.object({ contactId: z.uuid(), groupId: z.uuid() });
+/** What the customer already has (active bookings) in this group: the form shows it and asks the employee to confirm another one. */
+export async function existingBookings(input: z.input<typeof existingSchema>): Promise<ActionResult<ExistingBooking[]>> {
+  return runAction(existingSchema, input, async (d) => {
+    const supabase = await createClient();
+    const rows = check(await supabase.rpc("booking_existing_for", { p_contact_id: d.contactId, p_group_id: d.groupId })) ?? [];
+    return rows.map((r) => ({ id: r.booking_id, kind: r.booking_kind as ExistingBooking["kind"], sessionDate: r.session_date, status: r.status, finalPrice: Number(r.final_price), currency: r.currency, createdAt: r.created_at, owner: r.owner_name }));
   });
 }
 
@@ -47,7 +58,7 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
     await requirePermission(grp?.company_id, "create_bookings");
     const id = must(await supabase.rpc("create_workshop_booking", {
       p_contact_id: d.contactId, p_group_id: d.groupId, p_country: d.country, p_attendance: d.attendance,
-      p_booked_on: d.bookedOn ?? undefined, p_booked_by: d.bookedBy ?? undefined, p_discount_type: d.discountType, p_discount_value: d.discountValue ?? 0, p_discount_reason: d.discountReason ?? undefined, p_note: d.note ?? undefined,
+      p_booked_on: d.bookedOn ?? undefined, p_booked_by: d.bookedBy ?? undefined, p_kind: d.kind, p_session_date: d.kind === "session" ? d.sessionDate ?? undefined : undefined, p_confirm_repeat: d.confirmRepeat === true, p_discount_type: d.discountType, p_discount_value: d.discountValue ?? 0, p_discount_reason: d.discountReason ?? undefined, p_note: d.note ?? undefined,
     }));
     revalidatePath("/bookings");
     // optional first payment: a separate, checked call (the booking exists either way; a refused payment is reported, never hidden)

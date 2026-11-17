@@ -83,7 +83,7 @@ select tests.eq((select final_price from public.workshop_bookings where id = (se
 select tests.eq(pg_temp.st((select b4 from bk)), 'paid conf=0.00 pend=0.00 rem=0.00', 'a free seat is paid immediately');
 
 -- duplicates and capacity --------------------------------------------------------------------------------------------------------------------
-select tests.throws($q$select public.create_workshop_booking(tests.ref('k1'), tests.ref('g1'), 'QA', 'online')$q$, 'booking.duplicate', 'the same customer cannot be booked twice in a group');
+select tests.throws($q$select public.create_workshop_booking(tests.ref('k1'), tests.ref('g1'), 'QA', 'online')$q$, 'booking.repeat_unconfirmed', 'the same customer in the same group again needs the employee''s confirmation (migration 1018)');
 select tests.throws($q$select public.create_workshop_booking(tests.ref('k1'), tests.ref('g2'), 'QA', 'online')$q$, 'booking.duplicate', 'nor in a second group of the same workshop while the first has not finished');
 select tests.throws($q$select public.create_workshop_booking(tests.ref('k3'), tests.ref('g1'), 'QA', 'online')$q$, 'booking.group_full', 'the group holds 2 and is full');
 select tests.login('mgr_a');

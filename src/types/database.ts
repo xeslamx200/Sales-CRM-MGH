@@ -362,14 +362,14 @@ isOneToOne: false
                   Relationships: []
                 },"workshop_prices": {
                   Row: {
-                    "attendance": string,"company_id": string,"country": string,"created_at": string,"created_by": string | null,"currency": string,"id": string,"is_active": boolean,"offering_id": string,"price": number,"updated_at": string,"updated_by": string | null
+                    "attendance": string,"company_id": string,"country": string,"created_at": string,"created_by": string | null,"currency": string,"id": string,"is_active": boolean,"offering_id": string,"price": number,"session_price": number | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "attendance": string,"company_id": string,"country": string,"created_at"?: string,"created_by"?: string | null,"currency": string,"id"?: string,"is_active"?: boolean,"offering_id": string,"price": number,"updated_at"?: string,"updated_by"?: string | null
+                    "attendance": string,"company_id": string,"country": string,"created_at"?: string,"created_by"?: string | null,"currency": string,"id"?: string,"is_active"?: boolean,"offering_id": string,"price": number,"session_price"?: number | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "attendance"?: string,"company_id"?: string,"country"?: string,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"is_active"?: boolean,"offering_id"?: string,"price"?: number,"updated_at"?: string,"updated_by"?: string | null
+                    "attendance"?: string,"company_id"?: string,"country"?: string,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"is_active"?: boolean,"offering_id"?: string,"price"?: number,"session_price"?: number | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: []
                 },"workshop_price_history": {
@@ -398,14 +398,14 @@ isOneToOne: false
                   Relationships: []
                 },"workshop_bookings": {
                   Row: {
-                    "attendance": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"company_id": string,"contact_id": string,"country": string,"created_at": string,"created_by": string,"currency": string,"discount_amount": number,"discount_reason": string | null,"discount_type": string,"discount_value": number,"final_price": number,"group_id": string,"id": string,"list_price": number,"note": string | null,"offering_id": string,"status": string
+                    "attendance": string,"booking_kind": string,"session_date": string | null,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"company_id": string,"contact_id": string,"country": string,"created_at": string,"created_by": string,"currency": string,"discount_amount": number,"discount_reason": string | null,"discount_type": string,"discount_value": number,"final_price": number,"group_id": string,"id": string,"list_price": number,"note": string | null,"offering_id": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "attendance": string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"company_id": string,"contact_id": string,"country": string,"created_at"?: string,"created_by": string,"currency": string,"discount_amount"?: number,"discount_reason"?: string | null,"discount_type"?: string,"discount_value"?: number,"final_price": number,"group_id": string,"id"?: string,"list_price": number,"note"?: string | null,"offering_id": string,"status"?: string
+                    "attendance": string,"booking_kind"?: string,"session_date"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"company_id": string,"contact_id": string,"country": string,"created_at"?: string,"created_by": string,"currency": string,"discount_amount"?: number,"discount_reason"?: string | null,"discount_type"?: string,"discount_value"?: number,"final_price": number,"group_id": string,"id"?: string,"list_price": number,"note"?: string | null,"offering_id": string,"status"?: string
                   }
                   Update: {
-                    "attendance"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"company_id"?: string,"contact_id"?: string,"country"?: string,"created_at"?: string,"created_by"?: string,"currency"?: string,"discount_amount"?: number,"discount_reason"?: string | null,"discount_type"?: string,"discount_value"?: number,"final_price"?: number,"group_id"?: string,"id"?: string,"list_price"?: number,"note"?: string | null,"offering_id"?: string,"status"?: string
+                    "attendance"?: string,"booking_kind"?: string,"session_date"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"company_id"?: string,"contact_id"?: string,"country"?: string,"created_at"?: string,"created_by"?: string,"currency"?: string,"discount_amount"?: number,"discount_reason"?: string | null,"discount_type"?: string,"discount_value"?: number,"final_price"?: number,"group_id"?: string,"id"?: string,"list_price"?: number,"note"?: string | null,"offering_id"?: string,"status"?: string
                   }
                   Relationships: []
                 },"booking_discount_requests": {
@@ -1613,7 +1613,13 @@ isOneToOne: false
             }[]
                            },
 "create_workshop_booking":
-{ Args: { "p_attendance": string,"p_booked_by"?: string,"p_booked_on"?: string,"p_contact_id": string,"p_country": string,"p_discount_reason"?: string,"p_discount_type"?: string,"p_discount_value"?: number,"p_group_id": string,"p_note"?: string }; Returns: string
+{ Args: { "p_attendance": string,"p_booked_by"?: string,"p_booked_on"?: string,"p_confirm_repeat"?: boolean,"p_contact_id": string,"p_country": string,"p_discount_reason"?: string,"p_discount_type"?: string,"p_discount_value"?: number,"p_group_id": string,"p_kind"?: string,"p_note"?: string,"p_session_date"?: string }; Returns: string
+                           },
+"set_workshop_session_price":
+{ Args: { "p_attendance": string,"p_country": string,"p_offering_id": string,"p_price": number }; Returns: undefined
+                           },
+"booking_existing_for":
+{ Args: { "p_contact_id": string,"p_group_id": string }; Returns: { booking_id: string; booking_kind: string; session_date: string | null; status: string; final_price: number; currency: string; created_at: string; owner_name: string | null }[]
                            },
 "booking_owner_options":
 { Args: { "p_company_id": string }; Returns: { user_id: string; full_name: string }[]

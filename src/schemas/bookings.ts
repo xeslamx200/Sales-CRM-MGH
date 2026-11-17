@@ -34,6 +34,11 @@ export function buildBookingSchema(m: BookingMessages) {
     groupId: z.uuid(),
     country: z.string().trim().regex(/^[A-Za-z]{2}$/),
     attendance: z.enum(["online", "offline"]),
+    /** The whole workshop, or ONE session of the group (its own price; the date is one of the group's sessions). */
+    kind: z.enum(["full", "session"]).optional().default("full"),
+    sessionDate: isoDate,
+    /** The employee confirmed that this customer already has a booking in this group and wants another one. */
+    confirmRepeat: z.boolean().optional(),
     discountType: z.enum(["none", "fixed", "percent"]),
     discountValue: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => parseMoney(v)),
     discountReason: text(300),
@@ -45,6 +50,7 @@ export function buildBookingSchema(m: BookingMessages) {
     /** Optional first payment recorded together with the booking (booking currency; the database refuses more than what remains). */
     paidNow: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (isZero(v) ? 0 : parseMoney(v))),
   }).superRefine((d, ctx) => {
+    if (d.kind === "session" && !d.sessionDate) ctx.addIssue({ code: "custom", path: ["sessionDate"], message: m.discount });
     if (d.paidNow == null && m.paidRequired) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.paidRequired });
     if (d.paidNow != null && Number.isNaN(d.paidNow)) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.money });
     if (d.discountType === "none") return;

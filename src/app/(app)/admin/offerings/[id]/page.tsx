@@ -18,7 +18,7 @@ export default async function WorkshopConfigPage({ params }: PageProps<"/admin/o
   const tz = viewer.companies.find((c) => c.id === off.company_id)?.timezone ?? "UTC";
 
   const [prices, history, groups, gaps] = await Promise.all([
-    supabase.from("workshop_prices").select("id, country, attendance, currency, price, is_active").eq("offering_id", id).order("country").order("attendance"),
+    supabase.from("workshop_prices").select("id, country, attendance, currency, price, session_price, is_active").eq("offering_id", id).order("country").order("attendance"),
     supabase.from("workshop_price_history").select("id, country, attendance, old_price, old_currency, new_price, new_currency, new_active, changed_at, changed_by").eq("offering_id", id).order("changed_at", { ascending: false }).limit(30),
     supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active, finished_at").eq("offering_id", id).order("starts_on"),
     supabase.rpc("workshop_price_gaps", { p_company_id: off.company_id, p_countries: WORKSHOP_COUNTRIES.map((c) => c.code) }),

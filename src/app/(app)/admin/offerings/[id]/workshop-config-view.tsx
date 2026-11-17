@@ -8,7 +8,7 @@ import { formatCurrency, formatDate, formatNumber } from "@/lib/format.ts";
 import { countryName } from "@/lib/workshop-config.ts";
 import { DeactivatePriceButton, DeleteGroupButton, FinishGroupButton, GroupDialog, PriceDialog } from "./workshop-config-forms";
 
-export type PriceRow = { id: string; country: string; attendance: string; currency: string; price: number; is_active: boolean };
+export type PriceRow = { id: string; country: string; attendance: string; currency: string; price: number; session_price: number | null; is_active: boolean };
 export type HistoryRow = { id: number; country: string; attendance: string; old_price: number | null; old_currency: string | null; new_price: number; new_currency: string; new_active: boolean; changed_at: string; actor: string | null };
 export type GroupRow = { id: string; name: string; sessions: string[]; capacity: number | null; attendance: string | null; is_active: boolean; finished_at: string | null };
 export type GapRow = { country: string; attendance: string };
@@ -37,17 +37,18 @@ export function WorkshopConfigView({ offering, tz, t, locale, prices, history, g
         {prices.length === 0 ? <p className="text-sm text-muted-foreground">{w.noPrices}</p> : (
           <div className="relative overflow-x-auto rounded-lg border bg-card">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50"><tr>{[w.country, w.attendance, w.price, t.common.status].map((h) => <th key={h} className={th}>{h}</th>)}<th className="w-40 px-3 py-2"><span className="sr-only">{t.common.actions}</span></th></tr></thead>
+              <thead className="bg-muted/50"><tr>{[w.country, w.attendance, w.price, w.sessionPrice, t.common.status].map((h) => <th key={h} className={th}>{h}</th>)}<th className="w-40 px-3 py-2"><span className="sr-only">{t.common.actions}</span></th></tr></thead>
               <tbody className="divide-y">
                 {prices.map((p) => (
                   <tr key={p.id}>
                     <td className="px-3 py-2">{countryName(p.country, locale)}</td>
                     <td className="px-3 py-2">{att(p.attendance)}</td>
                     <td className={`ltr-nums px-3 py-2 font-medium ${p.is_active ? "" : "text-muted-foreground line-through"}`}>{formatCurrency(Number(p.price), p.currency, locale)}</td>
+                    <td className={`ltr-nums px-3 py-2 ${p.is_active ? "" : "text-muted-foreground"}`}>{p.session_price == null ? "—" : formatCurrency(Number(p.session_price), p.currency, locale)}</td>
                     <td className="px-3 py-2"><StatusBadge tone={p.is_active ? "success" : "neutral"}>{p.is_active ? t.common.active : w.inactive}</StatusBadge></td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
-                        <PriceDialog offeringId={id} price={{ country: p.country, attendance: p.attendance as "online" | "offline", currency: p.currency, price: String(p.price) }}
+                        <PriceDialog offeringId={id} price={{ country: p.country, attendance: p.attendance as "online" | "offline", currency: p.currency, price: String(p.price), sessionPrice: p.session_price == null ? "" : String(p.session_price) }}
                           trigger={<Button variant="ghost" size="icon-sm" aria-label={w.editPrice}><Pencil /></Button>} />
                         {p.is_active && <DeactivatePriceButton offeringId={id} country={p.country} attendance={p.attendance as "online" | "offline"} currency={p.currency} />}
                       </div>
