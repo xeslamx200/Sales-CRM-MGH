@@ -56,7 +56,7 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
     // a booking made by anybody but a company admin waits for approval (migration 1012): no payment can be recorded until a company admin approves it
     const created = await supabase.from("workshop_bookings").select("status").eq("id", id).maybeSingle();
     const awaitingApproval = created.data?.status === "pending_approval";
-    if (d.paidNow != null && d.paidNow > 0 && !awaitingApproval) {
+    if (d.paidNow != null && d.paidNow > 0) {
       try {
         await limitUser(supabase, "payment");
         await currentRates();   // a payment in a foreign currency needs a rate younger than 48 h: refresh it first (only when older than 6 h)

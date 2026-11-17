@@ -145,6 +145,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "booking.awaiting_approval": { ar: "هذا الحجز بانتظار اعتماد مسؤول الشركة. لا يمكن تسجيل دفعة قبل اعتماده.", en: "This booking is waiting for a company admin to approve it. A payment cannot be recorded before that." },
   "booking.invalid_date": { ar: "تاريخ الحجز غير مقبول: لا يكون في المستقبل ولا أقدم من 90 يومًا.", en: "That booking date is not accepted: not in the future and at most 90 days back." },
   "booking.owner_not_allowed": { ar: "لا يمكنك تسجيل حجز باسم هذا الموظف.", en: "You cannot book on behalf of this employee." },
+  "payment.booking_awaiting_approval": { ar: "اعتمد الحجز أولًا، ثم اعتمد الدفعة.", en: "Approve the booking first, then approve the payment." },
   "booking.duplicate": { ar: "هذا العميل محجوز بالفعل في هذه الورشة.", en: "This customer already has an active booking for this workshop." },
   "booking.group_full": { ar: "المجموعة مكتملة العدد.", en: "The group is full." },
   "booking.not_found": { ar: "الحجز غير موجود أو ليست لديك صلاحية عليه.", en: "The booking doesn't exist or you don't have access to it." },
