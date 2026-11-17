@@ -161,7 +161,11 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
   const group = o?.groups.find((g) => g.id === groupId) ?? null;
   // a group limited to one attendance type forces it
   useEffect(() => { if (group?.attendance && group.attendance !== attendance) form.setValue("attendance", group.attendance); }, [group, attendance, form]);
-  const price = o?.prices.find((p) => p.country === country && p.attendance === attendance) ?? null;
+  const countryPrice = o?.prices.find((p) => p.country === country && p.attendance === attendance) ?? null;
+  // a group with its own price (a private group) sells the whole workshop at that price, whatever the country; one session still uses the country's session price (same currency only)
+  const price: PriceOption | null = group?.groupPrice != null && group.groupCurrency
+    ? { country, attendance, currency: group.groupCurrency, price: group.groupPrice, sessionPrice: countryPrice && countryPrice.currency === group.groupCurrency ? countryPrice.sessionPrice : null }
+    : countryPrice;
   const basePrice = price ? (kind === "session" ? price.sessionPrice : price.price) : null;   // the workshop price or the price of one session
   const preview = previewBooking(basePrice, discountType, parseMoney(discountValue) ?? null);
   // what the customer owes today: the discounted price if it applies at once, otherwise the full price (a pending discount does not apply yet)

@@ -148,6 +148,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "payment.booking_awaiting_approval": { ar: "اعتمد الحجز أولًا، ثم اعتمد الدفعة.", en: "Approve the booking first, then approve the payment." },
   "booking.repeat_unconfirmed": { ar: "هذا العميل لديه حجز في نفس المجموعة. أكّد أنك تريد تسجيل حجز آخر له.", en: "This customer already has a booking in this group. Confirm that you want to record another one." },
   "booking.invalid_session": { ar: "اختر سيشن من مواعيد هذه المجموعة.", en: "Pick one of the sessions of this group." },
+  "group.invalid_price": { ar: "سعر المجموعة غير صالح: مبلغ موجب بخانتين عشريتين على الأكثر مع عملة من 3 حروف (أو اتركهما فارغين).", en: "Invalid group price: a positive amount (two decimals at most) with a 3-letter currency, or leave both empty." },
   "booking.session_price_not_configured": { ar: "لا يوجد سعر سيشن واحدة لهذه الدولة ونوع الحضور.", en: "No single-session price is set for this country and attendance." },
   "booking.duplicate": { ar: "هذا العميل محجوز بالفعل في هذه الورشة.", en: "This customer already has an active booking for this workshop." },
   "booking.group_full": { ar: "المجموعة مكتملة العدد.", en: "The group is full." },

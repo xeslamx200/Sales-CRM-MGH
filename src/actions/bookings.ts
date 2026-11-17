@@ -16,7 +16,7 @@ import { z } from "zod";
 // Every rule (price lookup and freezing, discount policy and approval, capacity, duplicates, overpayment, who may do what) is enforced by the database
 // functions of migrations 985 / 986. These actions validate the shape, call them with the user's own session, and translate errors.
 
-export type GroupOption = { id: string; name: string; sessions: string[]; capacity: number | null; booked: number; attendance: "online" | "offline" | null };
+export type GroupOption = { id: string; name: string; sessions: string[]; capacity: number | null; booked: number; attendance: "online" | "offline" | null; groupPrice: number | null; groupCurrency: string | null };
 export type PriceOption = { country: string; attendance: "online" | "offline"; currency: string; price: number; sessionPrice: number | null };
 export type ExistingBooking = { id: string; kind: "full" | "session"; sessionDate: string | null; status: string; finalPrice: number; currency: string; createdAt: string; owner: string | null };
 
@@ -25,7 +25,7 @@ export async function workshopOptions(input: z.input<typeof workshopOptionsSchem
   return runAction(workshopOptionsSchema, input, async ({ offeringId }) => {
     const supabase = await createClient();
     const [groups, stats, prices] = await Promise.all([
-      supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active").eq("offering_id", offeringId).eq("is_active", true).order("starts_on"),
+      supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active, group_price, group_currency").eq("offering_id", offeringId).eq("is_active", true).order("starts_on"),
       supabase.rpc("workshop_group_stats", { p_offering_id: offeringId }),
       supabase.from("workshop_prices").select("country, attendance, currency, price, session_price").eq("offering_id", offeringId).eq("is_active", true).order("country"),
     ]);
@@ -34,7 +34,7 @@ export async function workshopOptions(input: z.input<typeof workshopOptionsSchem
     if (prices.error) throw prices.error;
     const booked = new Map((stats.data ?? []).map((s) => [s.group_id, Number(s.booked)]));
     return {
-      groups: (groups.data ?? []).map((g) => ({ id: g.id, name: g.name, sessions: g.sessions, capacity: g.capacity, booked: booked.get(g.id) ?? 0, attendance: g.attendance as GroupOption["attendance"] })),
+      groups: (groups.data ?? []).map((g) => ({ id: g.id, name: g.name, sessions: g.sessions, capacity: g.capacity, booked: booked.get(g.id) ?? 0, attendance: g.attendance as GroupOption["attendance"], groupPrice: g.group_price == null ? null : Number(g.group_price), groupCurrency: g.group_currency })),
       prices: (prices.data ?? []).map((p) => ({ country: p.country, attendance: p.attendance as PriceOption["attendance"], currency: p.currency, price: Number(p.price), sessionPrice: p.session_price == null ? null : Number(p.session_price) })),
     };
   });

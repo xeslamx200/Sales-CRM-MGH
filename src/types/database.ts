@@ -386,14 +386,14 @@ isOneToOne: false
                   Relationships: []
                 },"workshop_groups": {
                   Row: {
-                    "attendance": string | null,"capacity": number | null,"company_id": string,"created_at": string,"created_by": string | null,"ends_on": string,"finished_at": string | null,"id": string,"is_active": boolean,"name": string,"offering_id": string,"sessions": (string)[],"starts_on": string,"updated_at": string,"updated_by": string | null
+                    "attendance": string | null,"capacity": number | null,"company_id": string,"created_at": string,"created_by": string | null,"ends_on": string,"finished_at": string | null,"group_currency": string | null,"group_price": number | null,"id": string,"is_active": boolean,"name": string,"offering_id": string,"sessions": (string)[],"starts_on": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "attendance"?: string | null,"capacity"?: number | null,"company_id": string,"created_at"?: string,"created_by"?: string | null,"ends_on": string,"id"?: string,"is_active"?: boolean,"name": string,"offering_id": string,"sessions": (string)[],"starts_on": string,"updated_at"?: string,"updated_by"?: string | null
+                    "attendance"?: string | null,"capacity"?: number | null,"company_id": string,"created_at"?: string,"created_by"?: string | null,"ends_on": string,"group_currency"?: string | null,"group_price"?: number | null,"id"?: string,"is_active"?: boolean,"name": string,"offering_id": string,"sessions": (string)[],"starts_on": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "attendance"?: string | null,"capacity"?: number | null,"company_id"?: string,"created_at"?: string,"created_by"?: string | null,"ends_on"?: string,"finished_at"?: string | null,"id"?: string,"is_active"?: boolean,"name"?: string,"offering_id"?: string,"sessions"?: (string)[],"starts_on"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "attendance"?: string | null,"capacity"?: number | null,"company_id"?: string,"created_at"?: string,"created_by"?: string | null,"ends_on"?: string,"finished_at"?: string | null,"group_currency"?: string | null,"group_price"?: number | null,"id"?: string,"is_active"?: boolean,"name"?: string,"offering_id"?: string,"sessions"?: (string)[],"starts_on"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: []
                 },"workshop_bookings": {
@@ -1600,7 +1600,7 @@ isOneToOne: false
 { Args: { "p_company_id": string,"p_ids": (string)[] }; Returns: number
                            },
 "set_workshop_group":
-{ Args: { "p_active"?: boolean,"p_attendance": string,"p_capacity": number,"p_group_id": string,"p_name": string,"p_offering_id": string,"p_sessions": (string)[] }; Returns: string
+{ Args: { "p_active"?: boolean,"p_attendance": string,"p_capacity": number,"p_group_currency"?: string,"p_group_id": string,"p_group_price"?: number,"p_name": string,"p_offering_id": string,"p_sessions": (string)[] }; Returns: string
                            },
 "workshop_price_for":
 { Args: { "p_attendance": string,"p_country": string,"p_offering_id": string }; Returns: {

@@ -93,7 +93,7 @@ export function DeleteGroupButton({ offeringId, groupId, name }: { offeringId: s
   );
 }
 
-type Group = { id: string; name: string; sessions: string; capacity: string; attendance: "" | "online" | "offline"; isActive: boolean };
+type Group = { id: string; name: string; sessions: string; capacity: string; attendance: "" | "online" | "offline"; isActive: boolean; groupPrice: string; groupCurrency: string };
 
 export function GroupDialog({ offeringId, group, trigger }: { offeringId: string; group?: Group; trigger: React.ReactNode }) {
   const { t } = useI18n();
@@ -108,7 +108,7 @@ function GroupForm({ offeringId, group, onDone }: { offeringId: string; group?: 
   const { t } = useI18n();
   const { form, submit, pending } = useActionForm({
     schema: workshopGroupSchema,
-    defaultValues: group ? { offeringId, ...group } : { offeringId, name: "", sessions: "", capacity: "", attendance: "", isActive: true },
+    defaultValues: group ? { offeringId, ...group } : { offeringId, name: "", sessions: "", capacity: "", attendance: "", groupPrice: "", groupCurrency: "", isActive: true },
     action: saveWorkshopGroup,
     successMessage: t.workshopConfig.saved,
     onSuccess: onDone,
@@ -122,6 +122,8 @@ function GroupForm({ offeringId, group, onDone }: { offeringId: string; group?: 
         <TextField control={form.control} name="capacity" label={t.workshopConfig.capacity} description={t.workshopConfig.capacityHint} inputMode="numeric" dir="ltr" />
         <SelectField control={form.control} name="attendance" label={t.workshopConfig.attendance} emptyLabel={t.workshopConfig.anyAttendance}
           options={[{ value: "online", label: t.workshopConfig.online }, { value: "offline", label: t.workshopConfig.offline }]} />
+        <TextField control={form.control} name="groupPrice" label={t.workshopConfig.groupPrice} description={t.workshopConfig.groupPriceHint} inputMode="decimal" dir="ltr" />
+        <SelectField control={form.control} name="groupCurrency" label={t.workshopConfig.currency} emptyLabel={t.workshopConfig.groupPriceNone} options={WORKSHOP_CURRENCIES.map((c) => ({ value: c, label: c }))} />
         <CheckboxField control={form.control} name="isActive" label={t.common.active} />
         <DialogFooter><SubmitButton pending={pending}>{t.common.save}</SubmitButton></DialogFooter>
       </FieldGroup>
