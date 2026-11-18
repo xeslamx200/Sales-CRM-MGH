@@ -196,7 +196,11 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
                         : ""}
                     </span>
                   ) : (
-                    <span><b>{b.editHistoryPayment}:</b> <span className="ltr-nums">{fmtMoney(o.amount, o.currency)} → {fmtMoney(n.amount, n.currency)}</span></span>
+                    <span>
+                      <b>{b.editHistoryPayment}:</b>{" "}
+                      <span className="ltr-nums">{Number(o.amount) === Number(n.amount) ? fmtMoney(n.amount, n.currency) : `${fmtMoney(o.amount, o.currency)} → ${fmtMoney(n.amount, n.currency)}`}</span>
+                      {o.credited_to !== undefined && o.credited_to !== n.credited_to && ` · ${b.creditedTo}: ${o.credited_to ?? "—"} → ${n.credited_to ?? "—"}`}
+                    </span>
                   )}
                   <span dir="auto" className="text-muted-foreground">{b.editReason}: {e.reason}</span>
                 </li>

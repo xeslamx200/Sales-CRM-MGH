@@ -999,6 +999,7 @@ export const en: Dictionary = {
     kindSession: "One session only",
     editBooking: "Edit booking",
     editBookingHint: "Correct the price, payment mode, reminder day and the amounts paid. Before and after are kept in a history nobody can change; a reason is required.",
+    creditedTo: "Credited to",
     editPaymentsTitle: "Amounts paid (edit the recorded amount of each payment)",
     editNoPayments: "This booking has no recorded payments, so there is no paid amount to edit. Record the payment first with the \"Record payment\" button (a receipt is required).",
     editPayment: "Edit amount",
