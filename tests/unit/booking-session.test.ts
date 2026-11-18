@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bookingSchema } from "../../src/schemas/bookings.ts";
+import { bookingSchema, editBookingSchema, editPaymentSchema } from "../../src/schemas/bookings.ts";
 import { workshopPriceSchema } from "../../src/schemas/workshops.ts";
 
 const ID = "7c1f6c3e-6b0e-4a43-9d2b-1f0a5d7c9e11";
@@ -57,4 +57,23 @@ test("a deposit needs the amount paid (below the price) and the reminder day", (
   assert.equal(bookingSchema.safeParse({ ...dep, paidNow: "500" }).success, false, "deposit equal to the price is a full payment");
   assert.equal(bookingSchema.safeParse({ ...dep, paidNow: "600" }).success, false, "deposit above the price");
   assert.equal(bookingSchema.safeParse({ ...base, paymentMode: "monthly" }).success, false);
+});
+
+test("a correction of a booking needs a valid price and a reason (and a reminder day for a deposit)", () => {
+  const ok = { bookingId: ID, price: "1200", currency: "egp", paymentMode: "full", remindOn: "", reason: "typo in the price" };
+  const r = editBookingSchema.parse(ok);
+  assert.equal(r.price, 1200);
+  assert.equal(r.paymentMode, "full");
+  for (const bad of [{ price: "" }, { price: "0" }, { price: "1.234" }, { currency: "EG" }, { reason: "" }, { reason: "ab" }, { paymentMode: "deposit" }, { paymentMode: "monthly" }]) {
+    assert.equal(editBookingSchema.safeParse({ ...ok, ...bad }).success, false, JSON.stringify(bad));
+  }
+  assert.equal(editBookingSchema.safeParse({ ...ok, paymentMode: "deposit", remindOn: "2026-12-20" }).success, true);
+});
+
+test("a correction of a payment needs a valid amount and a reason", () => {
+  const ok = { bookingId: ID, paymentId: ID, amount: "450.50", reason: "receipt says 450.50" };
+  assert.equal(editPaymentSchema.parse(ok).amount, 450.5);
+  for (const bad of [{ amount: "" }, { amount: "0" }, { amount: "-5" }, { amount: "abc" }, { reason: " " }, { reason: "x" }]) {
+    assert.equal(editPaymentSchema.safeParse({ ...ok, ...bad }).success, false, JSON.stringify(bad));
+  }
 });

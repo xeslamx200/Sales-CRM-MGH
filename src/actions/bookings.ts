@@ -8,8 +8,8 @@ import { limitUser } from "@/server/rate-limit";
 import { requestLocale } from "@/server/i18n";
 import { errorKey, userMessage } from "@/lib/errors.ts";
 import {
-  approveDiscountSchema, bookingPaymentSchema, bookingSchema, cancelBookingSchema, discountRequestSchema, rejectDiscountSchema, workshopOptionsSchema,
-  type ApproveDiscountInput, type BookingInput, type BookingPaymentInput, type CancelBookingInput, type DiscountRequestInput, type RejectDiscountInput,
+  approveDiscountSchema, bookingPaymentSchema, bookingSchema, cancelBookingSchema, discountRequestSchema, editBookingSchema, editPaymentSchema, rejectDiscountSchema, workshopOptionsSchema,
+  type ApproveDiscountInput, type BookingInput, type BookingPaymentInput, type CancelBookingInput, type DiscountRequestInput, type EditBookingInput, type EditPaymentInput, type RejectDiscountInput,
 } from "@/schemas/bookings";
 import { z } from "zod";
 
@@ -138,6 +138,29 @@ export async function rejectDiscount(input: RejectDiscountInput): Promise<Action
     const supabase = await createClient();
     check(await supabase.rpc("reject_booking_discount", { p_request_id: d.requestId, p_reason: d.reason }));
     revalidatePath("/bookings");
+    return null;
+  });
+}
+
+/** A super admin corrects a booking (price, currency, payment mode, reminder day) with a reason; the database checks who and keeps the before / after history. */
+export async function editBooking(input: EditBookingInput): Promise<ActionResult<null>> {
+  return runAction(editBookingSchema, input, async (d) => {
+    const supabase = await createClient();
+    check(await supabase.rpc("edit_workshop_booking", {
+      p_id: d.bookingId, p_price: d.price as number, p_currency: d.currency.toUpperCase(), p_payment_mode: d.paymentMode,
+      p_remind_on: d.paymentMode === "deposit" ? d.remindOn ?? undefined : undefined, p_reason: d.reason,
+    }));
+    revalidatePath("/bookings"); revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/customer-payments"); revalidatePath("/payments"); revalidatePath("/");
+    return null;
+  });
+}
+
+/** A super admin corrects the amount of a payment (pending or confirmed) with a reason. */
+export async function editPayment(input: EditPaymentInput): Promise<ActionResult<null>> {
+  return runAction(editPaymentSchema, input, async (d) => {
+    const supabase = await createClient();
+    check(await supabase.rpc("edit_payment_amount", { p_payment_id: d.paymentId, p_amount: d.amount, p_reason: d.reason }));
+    revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/bookings"); revalidatePath("/customer-payments"); revalidatePath("/payments"); revalidatePath("/");
     return null;
   });
 }

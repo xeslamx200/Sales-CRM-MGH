@@ -1618,6 +1618,15 @@ isOneToOne: false
 "set_workshop_session_price":
 { Args: { "p_attendance": string,"p_country": string,"p_offering_id": string,"p_price": number }; Returns: undefined
                            },
+"edit_workshop_booking":
+{ Args: { "p_currency": string,"p_id": string,"p_payment_mode": string,"p_price": number,"p_reason": string,"p_remind_on"?: string }; Returns: undefined
+                           },
+"edit_payment_amount":
+{ Args: { "p_amount": number,"p_payment_id": string,"p_reason": string }; Returns: undefined
+                           },
+"booking_edit_history":
+{ Args: { "p_booking_id": string }; Returns: { id: number; entity_type: string; entity_id: string; edited_at: string; edited_by_name: string | null; reason: string; old_values: Json; new_values: Json }[]
+                           },
 "booking_existing_for":
 { Args: { "p_contact_id": string,"p_group_id": string }; Returns: { booking_id: string; booking_kind: string; session_date: string | null; status: string; final_price: number; currency: string; created_at: string; owner_name: string | null }[]
                            },

@@ -111,3 +111,36 @@ export const rejectDiscountSchema = z.object({ requestId: z.uuid(), reason: z.st
 export type RejectDiscountInput = z.input<typeof rejectDiscountSchema>;
 
 export const workshopOptionsSchema = z.object({ offeringId: z.uuid() });
+
+/** A super admin's correction of a booking: the price (typed), the currency, paid in full / deposit and the reminder day, with a mandatory reason. */
+export function buildEditBookingSchema(m: { money: string; reminder: string; reason: string }) {
+  return z.object({
+    bookingId: z.uuid(),
+    price: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => parseMoney(v)),
+    currency: z.string().trim().regex(/^[A-Za-z]{3}$/),
+    paymentMode: z.enum(["full", "deposit"]),
+    remindOn: isoDate,
+    reason: z.string().trim().min(3, m.reason).max(300, m.reason),
+  }).superRefine((d, ctx) => {
+    if (d.price == null || Number.isNaN(d.price)) ctx.addIssue({ code: "custom", path: ["price"], message: m.money });
+    if (d.paymentMode === "deposit" && !d.remindOn) ctx.addIssue({ code: "custom", path: ["remindOn"], message: m.reminder });
+  });
+}
+export const editBookingSchema = buildEditBookingSchema({ money: "booking.invalid_price", reminder: "booking.invalid_reminder", reason: "booking.edit_reason_required" });
+export type EditBookingInput = z.input<typeof editBookingSchema>;
+
+/** A super admin's correction of a payment amount, with a mandatory reason. */
+export function buildEditPaymentSchema(m: { amount: string; reason: string }) {
+  return z.object({
+    bookingId: z.uuid(),
+    paymentId: z.uuid(),
+    amount: z.union([z.number(), z.string()]).transform((v, ctx) => {
+      const n = parseMoney(v);
+      if (n == null || Number.isNaN(n)) { ctx.addIssue({ code: "custom", message: m.amount }); return z.NEVER; }
+      return n;
+    }),
+    reason: z.string().trim().min(3, m.reason).max(300, m.reason),
+  });
+}
+export const editPaymentSchema = buildEditPaymentSchema({ amount: "payment.invalid_amount", reason: "booking.edit_reason_required" });
+export type EditPaymentInput = z.input<typeof editPaymentSchema>;

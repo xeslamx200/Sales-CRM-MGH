@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, Section } from "@/components/app/page-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { DiscBadge, PayBadge } from "@/components/bookings/bookings-table";
-import { ApproveBookingDialog, ApproveDiscountDialog, CancelBookingDialog, RejectBookingDialog, RecordPaymentDialog, RejectDiscountDialog, RequestDiscountDialog } from "@/components/bookings/booking-actions";
+import { ApproveBookingDialog, ApproveDiscountDialog, CancelBookingDialog, RejectBookingDialog, RecordPaymentDialog, RejectDiscountDialog, RequestDiscountDialog, EditBookingDialog, EditPaymentDialog } from "@/components/bookings/booking-actions";
 import { FileText, ImageIcon } from "lucide-react";
 import { AddProofButton } from "@/components/bookings/proof-field";
 import { getViewer, isAdminOf } from "@/server/auth/viewer";
@@ -31,9 +31,11 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
   const { data: own } = await supabase.from("workshop_bookings").select("company_id, booking_kind, session_date, payment_mode, remind_on").eq("id", id).maybeSingle();
   const companyId = own?.company_id;
   const tz = viewer.companies.find((c) => c.id === companyId)?.timezone ?? "UTC";
-  const [pays, reqs] = await Promise.all([
+  const mayEdit = viewer.isSuperAdmin;   // only the super admin corrects prices and payments (the database checks it again)
+  const [pays, reqs, edits] = await Promise.all([
     supabase.rpc("booking_payments", { p_booking_id: id }),
     companyId ? supabase.rpc("discount_requests_list", { p_company_id: companyId }) : Promise.resolve({ data: [], error: null }),
+    mayEdit || isAdminOf(viewer, companyId) ? supabase.rpc("booking_edit_history", { p_booking_id: id }) : Promise.resolve({ data: [], error: null }),
   ]);
   if (pays.error) throw pays.error;
   const payIds = (pays.data ?? []).map((p) => p.payment_id);
@@ -96,6 +98,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
             <div className="mt-3 flex flex-wrap gap-2">
               {remainingToPay > 0 && <RecordPaymentDialog bookingId={id} currency={cur} today={today} />}
               <CancelBookingDialog bookingId={id} />
+              {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} />}
             </div>
           )}
           {awaiting && (
@@ -104,6 +107,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
               <div className="flex flex-wrap gap-2">
                 {mayApprove && <ApproveBookingDialog bookingId={id} />}
                 <RejectBookingDialog bookingId={id} />
+                {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} />}
               </div>
             </div>
           )}
@@ -148,7 +152,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
         {(pays.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{b.noPayments}</p> : (
           <div className="relative overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50"><tr>{[b.paidOn, b.amount, b.colStatus, t.payments.colProof, b.recordedBy, b.reviewedBy, b.note].map((h) => <th key={h} className="px-3 py-2 text-start font-medium">{h}</th>)}</tr></thead>
+              <thead className="bg-muted/50"><tr>{[b.paidOn, b.amount, b.colStatus, t.payments.colProof, b.recordedBy, b.reviewedBy, b.note].map((h) => <th key={h} className="px-3 py-2 text-start font-medium">{h}</th>)}{mayEdit && <th className="w-10 px-3 py-2"><span className="sr-only">{b.editPayment}</span></th>}</tr></thead>
               <tbody className="divide-y">
                 {(pays.data ?? []).map((p) => (
                   <tr key={p.payment_id}>
@@ -163,6 +167,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
                     <td className="px-3 py-2">{p.recorded_by}</td>
                     <td className="px-3 py-2">{p.reviewed_by ?? "—"}</td>
                     <td className="px-3 py-2" dir="auto">{p.review_note ?? p.note ?? "—"}</td>
+                    {mayEdit && <td className="px-3 py-2">{p.status !== "rejected" && <EditPaymentDialog bookingId={id} paymentId={p.payment_id} amount={Number(p.amount)} currency={p.currency} />}</td>}
                   </tr>
                 ))}
               </tbody>
@@ -170,6 +175,35 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
           </div>
         )}
       </Section>
+
+      {(mayEdit || isAdminOf(viewer, companyId)) && (edits.data ?? []).length > 0 && (
+        <Section title={b.editHistory}>
+          <ul className="divide-y text-sm" data-testid="edit-history">
+            {(edits.data ?? []).map((e) => {
+              const o = e.old_values as Record<string, string | number | null>;
+              const n = e.new_values as Record<string, string | number | null>;
+              const fmtMoney = (v: string | number | null | undefined, c: string | number | null | undefined) => (v == null ? "—" : formatCurrency(Number(v), String(c ?? cur), locale));
+              return (
+                <li key={e.id} className="grid gap-1 py-2">
+                  <span className="text-xs text-muted-foreground">{formatDate(e.edited_at, tz, locale)} · {b.historyBy} {e.edited_by_name ?? "—"}</span>
+                  {e.entity_type === "booking" ? (
+                    <span>
+                      <b>{b.editHistoryBooking}:</b>{" "}
+                      <span className="ltr-nums">{fmtMoney(o.final_price, o.currency)} → {fmtMoney(n.final_price, n.currency)}</span>
+                      {o.payment_mode !== n.payment_mode || o.remind_on !== n.remind_on
+                        ? ` · ${o.payment_mode === "deposit" ? b.payDeposit : b.payFull}${o.remind_on ? ` (${formatDate(String(o.remind_on), "UTC", locale)})` : ""} → ${n.payment_mode === "deposit" ? b.payDeposit : b.payFull}${n.remind_on ? ` (${formatDate(String(n.remind_on), "UTC", locale)})` : ""}`
+                        : ""}
+                    </span>
+                  ) : (
+                    <span><b>{b.editHistoryPayment}:</b> <span className="ltr-nums">{fmtMoney(o.amount, o.currency)} → {fmtMoney(n.amount, n.currency)}</span></span>
+                  )}
+                  <span dir="auto" className="text-muted-foreground">{b.editReason}: {e.reason}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      )}
     </>
   );
 }
