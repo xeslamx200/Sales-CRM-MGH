@@ -11,7 +11,8 @@ import { TargetProgress, type TargetRow } from "@/components/reports/targets";
 import { DashboardHeader, WorkshopDashboard } from "@/components/dashboard/workshop-dashboard";
 import { loadWorkshopDashboard, type DashboardData } from "@/server/dashboard-data";
 import { getCompanyUiSettings } from "@/server/company-settings";
-import { getViewer, roleIn } from "@/server/auth/viewer";
+import { redirect } from "next/navigation";
+import { canSeeDashboard, getViewer, roleIn } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { reportPeriod } from "@/server/reports";
 import { formatNumber } from "@/lib/format.ts";
@@ -22,6 +23,8 @@ import { formatNumber } from "@/lib/format.ts";
  */
 export default async function DashboardPage({ searchParams }: PageProps<"/">) {
   const viewer = await getViewer();
+  // Only the super admin and the company's admins see the dashboard; everybody else starts at the inbox.
+  if (!canSeeDashboard(viewer)) redirect("/inbox");
   const { t, locale } = viewer;
   const sp = await searchParams;
   const company = viewer.activeCompany;

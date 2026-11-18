@@ -16,7 +16,7 @@ import { UserMenu } from "@/components/shell/user-menu";
 import { RemindersWatcher } from "@/components/shell/reminders-watcher";
 import { LanguageToggle } from "@/components/shell/language-toggle";
 import { ADMIN_AREAS } from "@/lib/permissions";
-import { canAdminAny, getViewer, isAnyAdmin, isAnyManager, rolePagesHidden } from "@/server/auth/viewer";
+import { canAdminAny, canSeeDashboard, getViewer, isAnyAdmin, isAnyManager, rolePagesHidden } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 
 // Browser tab: "<company name> CRM" (the company the user is working in), and "<page> · <company name> CRM" on the other pages.
@@ -54,7 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppSidebar
         access={{ anyAdmin: isAnyAdmin(viewer), anyManager: isAnyManager(viewer), superAdmin: viewer.isSuperAdmin, adminAreas: ADMIN_AREAS.filter((a) => canAdminAny(viewer, a)) }}
         unreadInbox={unreadInbox.count ?? 0}
-        hiddenHrefs={[...uiSettings.hiddenNav, ...rolePagesHidden(viewer)]}
+        hiddenHrefs={[...uiSettings.hiddenNav, ...rolePagesHidden(viewer), ...(canSeeDashboard(viewer) ? [] : ["/"])]}
         brandLogo={viewer.activeCompany && brand.hasLogo ? { src: logoUrl(viewer.activeCompany.id, brand.version), plate: brand.logoPlate } : brand.logoPlate ? { src: "/mgh-logo.png", plate: true } : null}
       />
       <SidebarInset className="min-w-0">

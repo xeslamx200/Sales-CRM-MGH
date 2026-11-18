@@ -137,6 +137,11 @@ export function isAnyAdmin(viewer: Viewer): boolean {
   return viewer.isSuperAdmin || viewer.companies.some((c) => c.role === "company_admin");
 }
 
+/** The dashboard is for the super admin and the admin of the company being worked in (everyone else lands on the inbox). */
+export function canSeeDashboard(viewer: Viewer): boolean {
+  return viewer.activeCompany ? isAdminOf(viewer, viewer.activeCompany.id) : isAnyAdmin(viewer);
+}
+
 export function isAnyManager(viewer: Viewer): boolean {
   return viewer.isSuperAdmin || viewer.companies.some((c) => c.role === "company_admin" || c.role === "sales_manager");
 }
