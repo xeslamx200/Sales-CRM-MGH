@@ -247,6 +247,7 @@ function EditBookingForm({ bookingId, price, currency, paymentMode, remindOn, cu
         {currencyLocked && <p className="text-xs text-muted-foreground">{t.bookings.currencyLockedNote}</p>}
         <SelectField control={form.control} name="paymentMode" label={t.bookings.paymentMode} options={[{ value: "full", label: t.bookings.payFull }, { value: "deposit", label: t.bookings.payDeposit }]} />
         {mode === "deposit" && <SingleDateField control={form.control} name="remindOn" label={t.bookings.remindOn} description={t.bookings.remindHint} />}
+        {payments.length === 0 && <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground" data-testid="edit-booking-no-payments">{t.bookings.editNoPayments}</p>}
         {payments.length > 0 && (
           <div className="grid gap-2 rounded-lg border bg-muted/30 p-3" data-testid="edit-booking-payments">
             <p className="text-sm font-medium">{t.bookings.editPaymentsTitle}</p>

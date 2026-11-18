@@ -1000,6 +1000,7 @@ export const en: Dictionary = {
     editBooking: "Edit booking",
     editBookingHint: "Correct the price, payment mode, reminder day and the amounts paid. Before and after are kept in a history nobody can change; a reason is required.",
     editPaymentsTitle: "Amounts paid (edit the recorded amount of each payment)",
+    editNoPayments: "This booking has no recorded payments, so there is no paid amount to edit. Record the payment first with the \"Record payment\" button (a receipt is required).",
     editPayment: "Edit amount",
     editPaymentHint: "Correct the payment amount (booking currency). Before and after are kept in a history nobody can change; a reason is required.",
     editReason: "Reason for the correction",
