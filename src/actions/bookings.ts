@@ -160,7 +160,8 @@ export async function editBooking(input: EditBookingInput): Promise<ActionResult
       if (!bookingSame) {
         check(await supabase.rpc("edit_workshop_booking", {
           p_id: d.bookingId, p_price: d.price as number, p_currency: d.currency.toUpperCase(), p_payment_mode: d.paymentMode,
-          p_remind_on: newRemind ?? undefined, p_reason: d.reason,
+          // the function has no default for the reminder day: leaving it out makes PostgREST look for a different function, so an empty day is sent as null
+          p_remind_on: newRemind as unknown as string, p_reason: d.reason,
         }));
       }
       for (const p of changed) check(await supabase.rpc("edit_payment_amount", { p_payment_id: p.paymentId, p_amount: p.amount, p_reason: d.reason }));
