@@ -120,6 +120,15 @@ export function buildEditBookingSchema(m: { money: string; reminder: string; rea
     currency: z.string().trim().regex(/^[A-Za-z]{3}$/),
     paymentMode: z.enum(["full", "deposit"]),
     remindOn: isoDate,
+    /** The amounts of the booking's payments (a typed amount that differs from the saved one is a correction). */
+    payments: z.array(z.object({
+      paymentId: z.uuid(),
+      amount: z.union([z.number(), z.string()]).transform((v, ctx) => {
+        const n = parseMoney(v);
+        if (n == null || Number.isNaN(n)) { ctx.addIssue({ code: "custom", message: m.money }); return z.NEVER; }
+        return n;
+      }),
+    })).optional().default([]),
     reason: z.string().trim().min(3, m.reason).max(300, m.reason),
   }).superRefine((d, ctx) => {
     if (d.price == null || Number.isNaN(d.price)) ctx.addIssue({ code: "custom", path: ["price"], message: m.money });

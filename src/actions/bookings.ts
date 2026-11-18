@@ -142,15 +142,31 @@ export async function rejectDiscount(input: RejectDiscountInput): Promise<Action
   });
 }
 
-/** A super admin corrects a booking (price, currency, payment mode, reminder day) with a reason; the database checks who and keeps the before / after history. */
+/**
+ * A super admin corrects a booking (price, currency, payment mode, reminder day) and/or the amounts of its payments, with ONE reason; the database
+ * checks who and keeps a before / after row for every change. Only what really changed is sent. The booking goes first, then each payment: if a payment
+ * is refused after the booking was saved, the page is refreshed and the error is reported (nothing is hidden).
+ */
 export async function editBooking(input: EditBookingInput): Promise<ActionResult<null>> {
   return runAction(editBookingSchema, input, async (d) => {
     const supabase = await createClient();
-    check(await supabase.rpc("edit_workshop_booking", {
-      p_id: d.bookingId, p_price: d.price as number, p_currency: d.currency.toUpperCase(), p_payment_mode: d.paymentMode,
-      p_remind_on: d.paymentMode === "deposit" ? d.remindOn ?? undefined : undefined, p_reason: d.reason,
-    }));
-    revalidatePath("/bookings"); revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/customer-payments"); revalidatePath("/payments"); revalidatePath("/");
+    const bk = check(await supabase.from("workshop_bookings").select("list_price, currency, payment_mode, remind_on").eq("id", d.bookingId).maybeSingle());
+    const pays = check(await supabase.rpc("booking_payments", { p_booking_id: d.bookingId })) ?? [];
+    const newRemind = d.paymentMode === "deposit" ? d.remindOn ?? null : null;
+    const bookingSame = bk != null && Number(bk.list_price) === d.price && String(bk.currency).trim() === d.currency.toUpperCase() && bk.payment_mode === d.paymentMode && (bk.remind_on ?? null) === newRemind;
+    const changed = d.payments.filter((p) => { const x = pays.find((y) => y.payment_id === p.paymentId); return x != null && x.status !== "rejected" && Number(x.amount) !== p.amount; });
+    const refresh = () => { revalidatePath("/bookings"); revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/customer-payments"); revalidatePath("/payments"); revalidatePath("/"); };
+    try {
+      if (!bookingSame) {
+        check(await supabase.rpc("edit_workshop_booking", {
+          p_id: d.bookingId, p_price: d.price as number, p_currency: d.currency.toUpperCase(), p_payment_mode: d.paymentMode,
+          p_remind_on: newRemind ?? undefined, p_reason: d.reason,
+        }));
+      }
+      for (const p of changed) check(await supabase.rpc("edit_payment_amount", { p_payment_id: p.paymentId, p_amount: p.amount, p_reason: d.reason }));
+    } finally {
+      refresh();
+    }
     return null;
   });
 }

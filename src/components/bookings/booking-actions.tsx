@@ -15,6 +15,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { approveBooking, approveDiscount, cancelBooking, editBooking, editPayment, recordBookingPayment, rejectDiscount, requestDiscount } from "@/actions/bookings";
 import { buildBookingPaymentSchema, buildDiscountRequestSchema, buildEditBookingSchema, buildEditPaymentSchema } from "@/schemas/bookings";
 import { SingleDateField } from "@/components/form/multi-date-field";
+import { formatDate } from "@/lib/format.ts";
 import { WORKSHOP_CURRENCIES } from "@/lib/workshop-config.ts";
 import { ProofField, uploadProof } from "@/components/bookings/proof-field";
 
@@ -209,27 +210,29 @@ export function ApproveDiscountDialog({ requestId, compact }: { requestId: strin
   );
 }
 
-/** Super admin: correct the price, currency, payment mode and reminder day of an open booking (a reason is mandatory; the history keeps before / after). */
-export function EditBookingDialog({ bookingId, price, currency, paymentMode, remindOn, currencyLocked }: {
-  bookingId: string; price: number; currency: string; paymentMode: "full" | "deposit"; remindOn: string; currencyLocked: boolean;
+export type EditablePayment = { id: string; amount: number; status: string; paidOn: string };
+
+/** Super admin: correct the price, currency, payment mode, reminder day AND the amounts paid of an open booking (one reason; the history keeps before / after). */
+export function EditBookingDialog({ bookingId, price, currency, paymentMode, remindOn, currencyLocked, payments }: {
+  bookingId: string; price: number; currency: string; paymentMode: "full" | "deposit"; remindOn: string; currencyLocked: boolean; payments: EditablePayment[];
 }) {
   const { t } = useI18n();
   return (
     <FormDialog trigger={<Button size="sm" variant="outline" data-testid="edit-booking"><Pencil />{t.bookings.editBooking}</Button>} title={t.bookings.editBooking} description={t.bookings.editBookingHint}>
-      {(close) => <EditBookingForm bookingId={bookingId} price={price} currency={currency} paymentMode={paymentMode} remindOn={remindOn} currencyLocked={currencyLocked} onDone={close} />}
+      {(close) => <EditBookingForm bookingId={bookingId} price={price} currency={currency} paymentMode={paymentMode} remindOn={remindOn} currencyLocked={currencyLocked} payments={payments} onDone={close} />}
     </FormDialog>
   );
 }
 
-function EditBookingForm({ bookingId, price, currency, paymentMode, remindOn, currencyLocked, onDone }: {
-  bookingId: string; price: number; currency: string; paymentMode: "full" | "deposit"; remindOn: string; currencyLocked: boolean; onDone: () => void;
+function EditBookingForm({ bookingId, price, currency, paymentMode, remindOn, currencyLocked, payments, onDone }: {
+  bookingId: string; price: number; currency: string; paymentMode: "full" | "deposit"; remindOn: string; currencyLocked: boolean; payments: EditablePayment[]; onDone: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const schema = useMemo(() => buildEditBookingSchema({ money: t.bookings.priceInvalid, reminder: t.bookings.reminderRequired, reason: t.bookings.editReasonRequired }), [t]);
   const { form, submit, pending } = useActionForm({
     schema,
-    defaultValues: { bookingId, price: String(price), currency, paymentMode, remindOn, reason: "" },
+    defaultValues: { bookingId, price: String(price), currency, paymentMode, remindOn, payments: payments.map((p) => ({ paymentId: p.id, amount: String(p.amount) })), reason: "" },
     action: editBooking,
     successMessage: t.bookings.editSaved,
     onSuccess: () => { onDone(); router.refresh(); },
@@ -244,6 +247,15 @@ function EditBookingForm({ bookingId, price, currency, paymentMode, remindOn, cu
         {currencyLocked && <p className="text-xs text-muted-foreground">{t.bookings.currencyLockedNote}</p>}
         <SelectField control={form.control} name="paymentMode" label={t.bookings.paymentMode} options={[{ value: "full", label: t.bookings.payFull }, { value: "deposit", label: t.bookings.payDeposit }]} />
         {mode === "deposit" && <SingleDateField control={form.control} name="remindOn" label={t.bookings.remindOn} description={t.bookings.remindHint} />}
+        {payments.length > 0 && (
+          <div className="grid gap-2 rounded-lg border bg-muted/30 p-3" data-testid="edit-booking-payments">
+            <p className="text-sm font-medium">{t.bookings.editPaymentsTitle}</p>
+            {payments.map((p, i) => (
+              <TextField key={p.id} control={form.control} name={`payments.${i}.amount`} inputMode="decimal" dir="ltr"
+                label={`${formatDate(p.paidOn, "UTC", locale)} · ${t.payments.status[p.status as "pending" | "confirmed" | "rejected"] ?? p.status} (${currency})`} />
+            ))}
+          </div>
+        )}
         <TextareaField control={form.control} name="reason" label={t.bookings.editReason} description={t.bookings.editReasonHint} rows={2} />
         <DialogFooter><SubmitButton pending={pending}>{t.common.save}</SubmitButton></DialogFooter>
       </FieldGroup>

@@ -77,3 +77,11 @@ test("a correction of a payment needs a valid amount and a reason", () => {
     assert.equal(editPaymentSchema.safeParse({ ...ok, ...bad }).success, false, JSON.stringify(bad));
   }
 });
+
+test("a booking correction can carry the amounts of its payments", () => {
+  const ok = { bookingId: ID, price: "1800", currency: "QAR", paymentMode: "full", remindOn: "", reason: "typo", payments: [{ paymentId: ID, amount: "1450.50" }] };
+  assert.equal(editBookingSchema.parse(ok).payments[0].amount, 1450.5);
+  assert.deepEqual(editBookingSchema.parse({ ...ok, payments: undefined }).payments, []);
+  assert.equal(editBookingSchema.safeParse({ ...ok, payments: [{ paymentId: ID, amount: "0" }] }).success, false);
+  assert.equal(editBookingSchema.safeParse({ ...ok, payments: [{ paymentId: "x", amount: "10" }] }).success, false);
+});

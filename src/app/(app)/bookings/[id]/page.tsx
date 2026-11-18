@@ -39,6 +39,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
   ]);
   if (pays.error) throw pays.error;
   const payIds = (pays.data ?? []).map((p) => p.payment_id);
+  const editablePayments = (pays.data ?? []).filter((p) => p.status !== "rejected").map((p) => ({ id: p.payment_id, amount: Number(p.amount), status: p.status, paidOn: p.paid_on }));
   const proofs = new Map<string, { id: string; mime: string }>();
   if (payIds.length) {
     const { data: files } = await supabase.from("attachments").select("id, entity_id, mime_type").eq("entity_type", "payment").in("entity_id", payIds).order("created_at");
@@ -98,7 +99,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
             <div className="mt-3 flex flex-wrap gap-2">
               {remainingToPay > 0 && <RecordPaymentDialog bookingId={id} currency={cur} today={today} />}
               <CancelBookingDialog bookingId={id} />
-              {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} />}
+              {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} payments={editablePayments} />}
             </div>
           )}
           {awaiting && (
@@ -107,7 +108,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
               <div className="flex flex-wrap gap-2">
                 {mayApprove && <ApproveBookingDialog bookingId={id} />}
                 <RejectBookingDialog bookingId={id} />
-                {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} />}
+                {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} payments={editablePayments} />}
               </div>
             </div>
           )}
