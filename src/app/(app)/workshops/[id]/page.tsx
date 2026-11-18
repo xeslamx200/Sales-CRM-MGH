@@ -9,7 +9,6 @@ import { BookingsTable, type BookingRow } from "@/components/bookings/bookings-t
 import { getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { uuid } from "@/lib/search-params";
-import { countryName } from "@/lib/workshop-config.ts";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -28,14 +27,13 @@ export default async function WorkshopPage({ params, searchParams }: PageProps<"
   const { data: off } = await supabase.from("company_offerings").select("id, company_id, name, kind, is_active").eq("id", id).maybeSingle();
   if (!off) notFound();
   const tz = viewer.companies.find((c) => c.id === off.company_id)?.timezone ?? "UTC";
-  const [prices, groups, gstats, stats, list] = await Promise.all([
-    supabase.from("workshop_prices").select("id, country, attendance, currency, price, is_active").eq("offering_id", id).order("country").order("attendance"),
+  const [groups, gstats, stats, list] = await Promise.all([
     supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active").eq("offering_id", id).order("starts_on"),
     supabase.rpc("workshop_group_stats", { p_offering_id: id }),
     supabase.rpc("workshop_stats", { p_offering_id: id }),
     supabase.rpc("workshop_bookings_list", { p_offering_id: id, p_group_id: groupFilter ?? undefined }),
   ]);
-  for (const r of [prices, groups, gstats, stats, list]) if (r.error) throw r.error;
+  for (const r of [groups, gstats, stats, list]) if (r.error) throw r.error;
   const s = stats.data?.[0];
   const money = ((s?.by_currency ?? []) as unknown as Money[]);
   const booked = new Map((gstats.data ?? []).map((x) => [x.group_id, Number(x.booked)]));
@@ -57,19 +55,6 @@ export default async function WorkshopPage({ params, searchParams }: PageProps<"
 
       <Section title={b.wkOverview}>
         <div className="grid gap-4 lg:grid-cols-2">
-          <div>
-            <h3 className="mb-2 text-sm font-medium">{b.wkPrices}</h3>
-            {(prices.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{b.wkNoPrices}</p> : (
-              <ul className="divide-y rounded-lg border text-sm" data-testid="prices-list">
-                {(prices.data ?? []).map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span>{countryName(p.country, locale)} · {att(p.attendance)}</span>
-                    <span className={`ltr-nums font-medium ${p.is_active ? "" : "text-muted-foreground line-through"}`}>{formatCurrency(Number(p.price), p.currency, locale)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
           <div>
             <h3 className="mb-2 text-sm font-medium">{b.wkGroups}</h3>
             {(groups.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{t.workshopConfig.noGroups}</p> : (

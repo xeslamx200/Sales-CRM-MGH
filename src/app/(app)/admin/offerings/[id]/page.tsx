@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import { canAdmin, getViewer } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
-import { WORKSHOP_COUNTRIES } from "@/lib/workshop-config.ts";
 import { WorkshopConfigView } from "./workshop-config-view";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Prices (workshop x country x attendance) and groups of one workshop. Company admins only; the database enforces every write. */
+/** The groups of one workshop (the price is typed on each booking; the price table is hidden). Company admins only; the database enforces every write. */
 export default async function WorkshopConfigPage({ params }: PageProps<"/admin/offerings/[id]">) {
   const viewer = await getViewer();
   const { t, locale } = viewer;
@@ -15,28 +14,13 @@ export default async function WorkshopConfigPage({ params }: PageProps<"/admin/o
   const supabase = await createClient();
   const { data: off } = await supabase.from("company_offerings").select("id, company_id, name, is_active").eq("id", id).maybeSingle();
   if (!off || !canAdmin(viewer, off.company_id, "offerings")) notFound();
-  const tz = viewer.companies.find((c) => c.id === off.company_id)?.timezone ?? "UTC";
 
-  const [prices, history, groups, gaps] = await Promise.all([
-    supabase.from("workshop_prices").select("id, country, attendance, currency, price, session_price, is_active").eq("offering_id", id).order("country").order("attendance"),
-    supabase.from("workshop_price_history").select("id, country, attendance, old_price, old_currency, new_price, new_currency, new_active, changed_at, changed_by").eq("offering_id", id).order("changed_at", { ascending: false }).limit(30),
-    supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active, finished_at, group_price, group_currency").eq("offering_id", id).order("starts_on"),
-    supabase.rpc("workshop_price_gaps", { p_company_id: off.company_id, p_countries: WORKSHOP_COUNTRIES.map((c) => c.code) }),
-  ]);
-  for (const r of [prices, history, groups, gaps]) if (r.error) throw r.error;
-  const actorIds = [...new Set((history.data ?? []).flatMap((h) => (h.changed_by ? [h.changed_by] : [])))];
-  const actors = new Map<string, string>();
-  if (actorIds.length) {
-    const { data } = await supabase.from("profiles").select("id, full_name").in("id", actorIds);
-    for (const p of data ?? []) actors.set(p.id, p.full_name);
-  }
+  const groups = await supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active, finished_at").eq("offering_id", id).order("starts_on");
+  if (groups.error) throw groups.error;
   return (
     <WorkshopConfigView
-      offering={off} tz={tz} t={t} locale={locale}
-      prices={prices.data ?? []}
-      history={(history.data ?? []).map((h) => ({ ...h, actor: h.changed_by ? actors.get(h.changed_by) ?? null : null }))}
+      offering={off} t={t} locale={locale}
       groups={groups.data ?? []}
-      gaps={(gaps.data ?? []).filter((g) => g.offering_id === id)}
     />
   );
 }

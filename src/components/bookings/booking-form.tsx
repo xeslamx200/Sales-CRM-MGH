@@ -10,12 +10,11 @@ import { FormError, SelectField, SubmitButton, TextareaField, TextField } from "
 import { SingleDateField } from "@/components/form/multi-date-field";
 import { useActionForm } from "@/components/form/use-action-form";
 import { useI18n } from "@/components/i18n-provider";
-import { createBooking, existingBookings, workshopOptions, type ExistingBooking, type GroupOption, type PriceOption } from "@/actions/bookings";
+import { createBooking, existingBookings, workshopOptions, type ExistingBooking, type GroupOption } from "@/actions/bookings";
 import { searchCustomers, type CustomerHit } from "@/actions/payments";
 import { buildBookingSchema, parseMoney } from "@/schemas/bookings";
 import { ProofField, uploadProof } from "@/components/bookings/proof-field";
-import { previewBooking, type DiscountType } from "@/lib/discount-policy.ts";
-import { WORKSHOP_COUNTRIES, countryName } from "@/lib/workshop-config.ts";
+import { WORKSHOP_COUNTRIES, WORKSHOP_CURRENCIES, countryName } from "@/lib/workshop-config.ts";
 import { VoiceCapture } from "@/components/bookings/voice-capture";
 import { matchGroup, parseBookingSpeech, type SpeechBooking } from "@/lib/voice/booking-parser.ts";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format.ts";
@@ -26,15 +25,15 @@ export type WorkshopChoice = { id: string; companyId: string; name: string };
 type VoiceItem = { key: string; label: string; value: string; ok: boolean };
 
 /**
- * Booking form: customer -> workshop -> group -> country + attendance (the configured price and currency appear) -> optional discount with a mandatory
- * reason -> a live summary (original, discount, final, who must approve). The database re-checks everything; nothing here is trusted.
+ * Booking form: customer -> workshop -> group -> country + attendance -> the whole workshop or one session -> the price the customer agreed to (typed here)
+ * -> paid in full, or a deposit with the day the rest is reminded. The database re-checks everything; nothing here is trusted.
  */
 export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops: WorkshopChoice[]; owners?: Record<string, { value: string; label: string }[]>; selfId?: string }) {
   const { t, locale } = useI18n();
   const b = t.bookings;
   const router = useRouter();
   const [offeringId, setOfferingId] = useState("");
-  const [opts, setOpts] = useState<{ offeringId: string; groups: GroupOption[]; prices: PriceOption[] } | null>(null);
+  const [opts, setOpts] = useState<{ offeringId: string; groups: GroupOption[] } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
   const [picked, setPicked] = useState<{ hit: CustomerHit; companyId: string } | null>(null);
@@ -56,15 +55,22 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
     const now = new Date();
     return [iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90)), iso(now)];
   }, []);
-  const schema = useMemo(() => buildBookingSchema({ discount: b.invalidDiscount, reason: b.reasonRequired, money: b.moneyInvalid, paidRequired: b.paidRequired }), [b]);
+  // the reminder day: tomorrow at the earliest, a year ahead at the latest
+  const [remindMin, remindMax] = useMemo(() => {
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const now = new Date();
+    return [iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)), iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 365))];
+  }, []);
+  const schema = useMemo(() => buildBookingSchema({ discount: b.invalidDiscount, reason: b.reasonRequired, money: b.priceInvalid, paidRequired: b.depositRequired, reminder: b.reminderRequired, depositLess: b.depositInvalid }), [b]);
   const workshop = workshops.find((w) => w.id === offeringId) ?? null;
 
   const { form, submit, pending } = useActionForm({
     schema,
-    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", kind: "full", sessionDate: "", discountType: "none", discountValue: "", discountReason: "", note: "", bookedOn: "", bookedBy: "", paidNow: "" },
+    defaultValues: { contactId: "", groupId: "", country: "QA", attendance: "online", kind: "full", sessionDate: "", price: "", currency: WORKSHOP_COUNTRIES.find((c) => c.code === "QA")?.currency ?? "QAR", paymentMode: "full", remindOn: "", note: "", bookedOn: "", bookedBy: "", paidNow: "" },
     // a payment needs its proof: the approver checks the amount the employee typed against the receipt
     action: async (values) => {
-      if (values.paidNow != null && values.paidNow > 0 && !proof) { setProofError(t.payments.proofRequired); return { ok: false as const, error: t.payments.proofRequired, errorKey: "payment.proof_required" }; }
+      const owed = values.paymentMode === "full" ? values.price : values.paidNow;
+      if (owed != null && !Number.isNaN(owed) && owed > 0 && !proof) { setProofError(t.payments.proofRequired); return { ok: false as const, error: t.payments.proofRequired, errorKey: "payment.proof_required" }; }
       return createBooking({ ...values, sessionDate: values.kind === "session" ? values.sessionDate : null, confirmRepeat: confirmRef.current });
     },
     onSuccess: async (data) => {
@@ -75,12 +81,13 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
       router.push(`/bookings/${data.bookingId}`);
     },
   });
-  const discountType = form.watch("discountType") as DiscountType;
-  const discountValue = form.watch("discountValue");
   const country = form.watch("country");
   const attendance = form.watch("attendance");
   const groupId = form.watch("groupId");
   const kind = form.watch("kind");
+  const paymentMode = form.watch("paymentMode");
+  const currency = String(form.watch("currency") ?? "");
+  const remindOn = form.watch("remindOn");
   const sessionDate = form.watch("sessionDate");
   const contactId = form.watch("contactId");
   // what this customer already has in this group (the same customer may pay more than once; the employee confirms it)
@@ -94,6 +101,8 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
   const existingRows = existing && existing.key === existKey ? existing.rows : [];
   // a repeat = the whole workshop again, a booking over a whole-workshop one, or the same session again
   const conflicts = existingRows.filter((x) => kind === "full" || x.kind === "full" || x.sessionDate === sessionDate);
+  // the currency follows the country until the employee picks another one
+  useEffect(() => { const c = WORKSHOP_COUNTRIES.find((x) => x.code === country); if (c && !form.getFieldState("currency").isDirty) form.setValue("currency", c.currency); }, [country, form]);
   const confirmKey = `${existKey}:${kind}:${kind === "session" ? sessionDate : ""}`;
   const confirmRepeat = conflicts.length > 0 && confirmed === confirmKey;
   useEffect(() => { confirmRef.current = confirmRepeat; }, [confirmRepeat]);
@@ -116,10 +125,10 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
 
   const putVoiceItem = (item: VoiceItem) => setVoiceItems((v) => [...(v ?? []).filter((i) => i.key !== item.key), item]);
 
-  /** With the workshop's groups and prices known: pick the spoken group and, if asked, the full price as the first payment. */
-  const finishVoice = (options: { groups: GroupOption[]; prices: PriceOption[] }, said: SpeechBooking) => {
+  /** With the workshop's groups known: pick the spoken group. */
+  const finishVoice = (options: { groups: GroupOption[] }, said: SpeechBooking) => {
     const vb = t.voiceBooking;
-    let chosen = options.groups.find((g) => g.id === form.getValues("groupId")) ?? null;
+    let chosen: GroupOption | null = options.groups.find((g) => g.id === form.getValues("groupId")) ?? null;
     if (said.group) {
       const r = matchGroup(said.group, options.groups);
       const g = r.id ? options.groups.find((x) => x.id === r.id) ?? null : null;
@@ -129,16 +138,7 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
         chosen = g;
       } else putVoiceItem({ key: "group", label: b.group, value: `${said.group.text} — ${g ? vb.fullGroup : vb.noGroup}`, ok: false });
     }
-    if (said.paidFull) {
-      const att = chosen?.attendance ?? (form.getValues("attendance") as "online" | "offline");
-      const pr = options.prices.find((x) => x.country === form.getValues("country") && x.attendance === att) ?? null;
-      const pv = previewBooking(pr?.price ?? null, form.getValues("discountType") as DiscountType, parseMoney(form.getValues("discountValue")) ?? null);
-      const pay = pv ? (pv.valid && pv.level !== "manager" && pv.level !== "admin" ? pv.final : pv.list) : null;
-      if (pay != null && pr) {
-        form.setValue("paidNow", String(pay), { shouldDirty: true, shouldValidate: true });
-        putVoiceItem({ key: "paid", label: b.paidNow, value: `${formatCurrency(pay, pr.currency, locale)} (${vb.paidFullDone})`, ok: true });
-      } else putVoiceItem({ key: "paid", label: b.paidNow, value: vb.paidFullWaiting, ok: false });
-    }
+    void chosen;
   };
 
   const chooseWorkshop = (id: string) => {
@@ -161,18 +161,13 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
   const group = o?.groups.find((g) => g.id === groupId) ?? null;
   // a group limited to one attendance type forces it
   useEffect(() => { if (group?.attendance && group.attendance !== attendance) form.setValue("attendance", group.attendance); }, [group, attendance, form]);
-  const countryPrice = o?.prices.find((p) => p.country === country && p.attendance === attendance) ?? null;
-  // a group with its own price (a private group) sells the whole workshop at that price, whatever the country; one session still uses the country's session price (same currency only)
-  const price: PriceOption | null = group?.groupPrice != null && group.groupCurrency
-    ? { country, attendance, currency: group.groupCurrency, price: group.groupPrice, sessionPrice: countryPrice && countryPrice.currency === group.groupCurrency ? countryPrice.sessionPrice : null }
-    : countryPrice;
-  const basePrice = price ? (kind === "session" ? price.sessionPrice : price.price) : null;   // the workshop price or the price of one session
-  const preview = previewBooking(basePrice, discountType, parseMoney(discountValue) ?? null);
-  // what the customer owes today: the discounted price if it applies at once, otherwise the full price (a pending discount does not apply yet)
-  const payable = preview ? (preview.valid && preview.level !== "manager" && preview.level !== "admin" ? preview.final : preview.list) : null;
+  const priceNum = parseMoney(form.watch("price"));   // null = empty, NaN = invalid
+  const priceOk = priceNum != null && !Number.isNaN(priceNum);
   const paid = parseMoney(form.watch("paidNow"));
-  const paidInvalid = paid != null && Number.isNaN(paid);
-  const overpaid = paid != null && !Number.isNaN(paid) && payable != null && paid > payable ? Math.round((paid - payable) * 100) / 100 : 0;
+  const depositBad = paymentMode === "deposit" && paid != null && (Number.isNaN(paid) || (priceOk && paid >= priceNum));
+  // what is paid today: the whole price, or the deposit
+  const toPay = paymentMode === "full" ? (priceOk ? priceNum : null) : (paid != null && !Number.isNaN(paid) ? paid : null);
+  const remaining = priceOk && toPay != null ? Math.max(0, Math.round((priceNum - toPay) * 100) / 100) : null;
 
   /** Fill the form from what was said. Only what was clearly understood is filled; everything is reported so it can be reviewed. */
   const applyVoice = async (spoken: string) => {
@@ -187,12 +182,11 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
       if (w) { if (w.id !== offeringId) chooseWorkshop(w.id); companyId = w.companyId; add("workshop", b.workshop, w.name); }
     } else if (p.workshopAmbiguous) add("workshop", b.workshop, vb.ambiguous, false);
     // group and "paid in full" need the workshop's groups and prices: now if they are loaded, otherwise when they arrive
-    const needsOptions = Boolean(p.group || p.paidFull);
+    const needsOptions = Boolean(p.group);
     const workshopNow = p.workshopId ?? offeringId;
     if (needsOptions && !workshopNow) {
       if (p.group) add("group", b.group, `${p.group.text} — ${vb.needWorkshop}`, false);
-      if (p.paidFull) add("paid", b.paidNow, vb.needWorkshop, false);
-      if (p.paidFull || p.group) pendingVoice.current = null;
+      if (p.group) pendingVoice.current = null;
     } else if (needsOptions) {
       if (!p.workshopId || p.workshopId === offeringId) {
         if (o) finishVoice(o, p); else pendingVoice.current = p;
@@ -200,18 +194,13 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
     }
     if (p.country) { form.setValue("country", p.country, { shouldDirty: true }); add("country", b.country, countryName(p.country, locale === "ar" ? "ar" : "en")); }
     if (p.attendance) { form.setValue("attendance", p.attendance, { shouldDirty: true }); add("attendance", b.attendance, p.attendance === "online" ? b.online : b.offline); }
-    if (p.discount) {
-      form.setValue("discountType", p.discount.type, { shouldDirty: true });
-      form.setValue("discountValue", String(p.discount.value), { shouldDirty: true, shouldValidate: true });
-      add("discount", b.discount, `${p.discount.type === "percent" ? `${p.discount.value}%` : p.discount.value}${p.discount.assumedPercent ? ` (${vb.assumedPercent})` : ""}`);
-      if (p.discountReason) { form.setValue("discountReason", p.discountReason, { shouldDirty: true, shouldValidate: true }); add("reason", b.discountReason, p.discountReason); }
-      else add("reason", b.discountReason, vb.reasonMissing, false);
-    }
+    if (p.discount) add("discount", b.discount, vb.discountRemoved, false);
+    if (p.paidFull) { form.setValue("paymentMode", "full", { shouldDirty: true }); add("paid", b.paymentMode, b.payFull); }
     if (p.paidNow != null) {
-      form.setValue("paidNow", String(p.paidNow), { shouldDirty: true, shouldValidate: true });
-      add("paid", b.paidNow, String(p.paidNow));
-      add("proof", t.payments.proofRequired, vb.proofNeeded, false);
-    } else if (p.paidFull) add("proof", t.payments.proofRequired, vb.proofNeeded, false);
+      form.setValue(form.getValues("paymentMode") === "deposit" ? "paidNow" : "price", String(p.paidNow), { shouldDirty: true, shouldValidate: true });
+      add("paid", form.getValues("paymentMode") === "deposit" ? b.depositPaid : b.priceFull, String(p.paidNow));
+    }
+    if (p.paidFull || p.paidNow != null) add("proof", t.payments.proofRequired, vb.proofNeeded, false);
     if (p.note) { form.setValue("note", p.note, { shouldDirty: true }); add("note", b.note, p.note); }
     // the customer: by phone first, then the spoken name (full, first two words, first word)
     const name = p.customerName;
@@ -339,20 +328,17 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
               options={(group?.sessions ?? []).map((d) => ({ value: d, label: formatDate(d, "UTC", locale) }))} />
           )}
         </div>
-        {kind === "session" && price && price.sessionPrice == null && <p className="text-sm text-destructive" role="alert" data-testid="session-price-missing">{b.sessionPriceMissing}</p>}
-
         <div className="grid gap-3 sm:grid-cols-2">
-          <SelectField control={form.control} name="discountType" label={b.discount}
-            options={[{ value: "none", label: b.discountNone }, { value: "fixed", label: b.discountFixed }, { value: "percent", label: b.discountPercent }]} />
-          {discountType !== "none" && <TextField control={form.control} name="discountValue" label={b.discountValue} inputMode="decimal" dir="ltr" />}
+          <SelectField control={form.control} name="paymentMode" label={b.paymentMode} options={[{ value: "full", label: b.payFull }, { value: "deposit", label: b.payDeposit }]} />
+          <SelectField control={form.control} name="currency" label={b.currency} options={WORKSHOP_CURRENCIES.map((c) => ({ value: c, label: c }))} />
         </div>
-        {discountType !== "none" && (
-          <TextareaField control={form.control} name="discountReason" label={b.discountReason} description={b.discountReasonHint} rows={2} />
-        )}
-        <TextField control={form.control} name="paidNow" label={`${b.paidNow}${price ? ` (${price.currency})` : ""}`} description={b.paidNowHint} inputMode="decimal" dir="ltr" />
-        {paidInvalid && <p className="text-sm text-destructive" role="alert">{b.moneyInvalid}</p>}
-        {overpaid > 0 && price && <p className="rounded-md bg-warning/10 px-3 py-2 text-sm" data-testid="overpaid-note">{fmt(b.overpaidNote, { amount: formatCurrency(overpaid, price.currency, locale) })}</p>}
-        {paid != null && !Number.isNaN(paid) && paid > 0 && <ProofField file={proof} onFile={setProof} error={proofError} onError={setProofError} required />}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField control={form.control} name="price" label={paymentMode === "full" ? (kind === "session" ? b.pricePaidSession : b.pricePaidFull) : (kind === "session" ? b.priceTotalSession : b.priceTotalFull)} description={b.priceHint} inputMode="decimal" dir="ltr" />
+          {paymentMode === "deposit" && <TextField control={form.control} name="paidNow" label={b.depositPaid} inputMode="decimal" dir="ltr" />}
+        </div>
+        {paymentMode === "deposit" && <SingleDateField control={form.control} name="remindOn" label={b.remindOn} description={b.remindHint} min={remindMin} max={remindMax} />}
+        {depositBad && <p className="text-sm text-destructive" role="alert">{b.depositInvalid}</p>}
+        {toPay != null && toPay > 0 && <ProofField file={proof} onFile={setProof} error={proofError} onError={setProofError} required />}
         {ownerChoices.length > 0 && (
           <SelectField control={form.control} name="bookedBy" label={b.bookedFor} description={b.bookedForHint}
             emptyLabel={b.bookedForMe} options={ownerChoices.filter((o) => o.value !== selfId)} />
@@ -382,43 +368,27 @@ export function BookingForm({ workshops, owners = {}, selfId = "" }: { workshops
           </div>
         )}
         <div className="flex justify-end">
-          <SubmitButton pending={pending} disabled={!o || !price || basePrice == null || !groupId || (kind === "session" && !sessionDate) || (conflicts.length > 0 && !confirmRepeat) || (preview !== null && !preview.valid) || paidInvalid}>{b.create}</SubmitButton>
+          <SubmitButton pending={pending} disabled={!o || !priceOk || !currency || !groupId || (kind === "session" && !sessionDate) || (conflicts.length > 0 && !confirmRepeat) || depositBad || (paymentMode === "deposit" && (paid == null || !remindOn))}>{b.create}</SubmitButton>
         </div>
       </FieldGroup>
 
       <aside className="h-fit rounded-xl border bg-card p-4 text-sm shadow-sm" aria-live="polite">
         <h2 className="mb-3 font-semibold">{b.price}</h2>
         {!o ? <p className="text-muted-foreground">{b.pickWorkshop}</p>
-          : !price ? <p className="text-destructive" data-testid="price-missing">{b.priceNotConfigured}</p>
-          : preview && (
+          : !priceOk ? <p className="text-muted-foreground" data-testid="price-missing">{b.priceType}</p>
+          : (
             <dl className="space-y-2" data-testid="price-summary">
-              <Row label={b.original} value={formatCurrency(preview.list, price.currency, locale)} />
-              {discountType !== "none" && (
-                <>
-                  <Row label={b.discountAmount} value={preview.valid ? `− ${formatCurrency(preview.discount, price.currency, locale)}` : "—"} />
-                  <Row label={b.effectivePercent} value={preview.valid ? `${formatNumber(Math.round(preview.percent * 100) / 100, locale)}%` : "—"} />
-                </>
-              )}
-              <Row label={b.finalPrice} value={formatCurrency(preview.valid && preview.level !== "manager" && preview.level !== "admin" ? preview.final : preview.list, price.currency, locale)} strong />
-              {paid != null && !Number.isNaN(paid) && payable != null && (
+              <Row label={kind === "session" ? b.priceSession : b.priceFull} value={formatCurrency(priceNum, currency, locale)} strong />
+              {toPay != null && (
                 <div data-testid="payment-summary" className="space-y-1 border-t pt-2">
-                  <Row label={b.paidNow} value={formatCurrency(paid, price.currency, locale)} />
-                  <Row label={b.remainingAfter} value={formatCurrency(Math.max(0, Math.round((payable - paid) * 100) / 100), price.currency, locale)} strong />
-                  <p className={cn("text-xs font-medium", paid >= payable ? "text-success" : "text-amber-800")}>{paid >= payable ? b.fullPayment : b.partialPayment}</p>
+                  <Row label={paymentMode === "full" ? b.paidNow : b.depositPaid} value={formatCurrency(toPay, currency, locale)} />
+                  <Row label={b.remainingAfter} value={formatCurrency(remaining ?? 0, currency, locale)} strong />
+                  <p className={cn("text-xs font-medium", (remaining ?? 0) <= 0 ? "text-success" : "text-amber-800")}>{(remaining ?? 0) <= 0 ? b.fullPayment : b.partialPayment}</p>
+                  {paymentMode === "deposit" && remindOn && <p className="text-xs text-muted-foreground">{fmt(b.remindSummary, { date: formatDate(remindOn, "UTC", locale) })}</p>}
                 </div>
               )}
-              <div className="mt-3 rounded-md bg-muted/60 p-2 text-xs" data-testid="approval-note">
-                <p className="font-medium">{b.approvalNeeded}</p>
-                <p className={cn(preview.level === "manager" || preview.level === "admin" ? "text-amber-800" : "text-muted-foreground")}>
-                  {!preview.valid ? b.invalidDiscount : preview.level === "none" ? b.approvalNone : preview.level === "employee" ? b.approvalImmediate : preview.level === "manager" ? b.approvalManager : b.approvalAdmin}
-                </p>
-                {preview.valid && (preview.level === "manager" || preview.level === "admin") && (
-                  <p className="mt-1 text-muted-foreground">{b.pendingExplain} <b className="ltr-nums">{formatCurrency(preview.final, price.currency, locale)}</b></p>
-                )}
-              </div>
             </dl>
           )}
-        {o && !price && country && attendance && <p className="mt-2 text-xs text-muted-foreground">{b.pickCountryAttendance}</p>}
       </aside>
     </form>
   );

@@ -56,19 +56,6 @@ export const workshopGroupSchema = z.object({
     return n;
   }),
   attendance: z.enum(["", "online", "offline"]).nullable().optional().transform((v) => (v ? v : null)),
-  /** The group's OWN price (optional, e.g. a private group): replaces the country price for the whole workshop. Price and currency go together. */
-  groupPrice: z.union([z.number(), z.string(), z.null()]).optional().transform((v, ctx) => {
-    if (v == null || v === "") return null;
-    const n = num(v);
-    if (!Number.isFinite(n) || n <= 0 || n > 1_000_000_000 || Math.abs(n * 100 - Math.round(n * 100)) > 1e-6) {
-      ctx.addIssue({ code: "custom", message: "group.invalid_price" });
-      return z.NEVER;
-    }
-    return n;
-  }),
-  groupCurrency: z.union([z.string().trim().regex(/^[A-Za-z]{3}$/), z.literal(""), z.null()]).optional().transform((v) => (v ? v.toUpperCase() : null)),
   isActive: z.boolean(),
-}).superRefine((d, ctx) => {
-  if ((d.groupPrice == null) !== (d.groupCurrency == null)) ctx.addIssue({ code: "custom", path: [d.groupPrice == null ? "groupPrice" : "groupCurrency"], message: "group.invalid_price" });
 });
 export type WorkshopGroupInput = z.input<typeof workshopGroupSchema>;

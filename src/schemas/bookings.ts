@@ -21,7 +21,7 @@ const isZero = (v: unknown) => v === 0 || (typeof v === "string" && /^0+([.,]0+)
 const text = (max: number) => z.string().trim().max(max).nullable().optional().transform((v) => (v ? v : null));
 const isoDate = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().or(z.literal("").transform(() => null));
 
-export type BookingMessages = { discount: string; reason: string; money: string; paidRequired?: string };
+export type BookingMessages = { discount: string; reason: string; money: string; paidRequired?: string; reminder?: string; depositLess?: string };
 
 /**
  * A booking: an existing customer, one specific group, a country and an attendance type. The price and its currency are NEVER sent: the database
@@ -39,7 +39,13 @@ export function buildBookingSchema(m: BookingMessages) {
     sessionDate: isoDate,
     /** The employee confirmed that this customer already has a booking in this group and wants another one. */
     confirmRepeat: z.boolean().optional(),
-    discountType: z.enum(["none", "fixed", "percent"]),
+    /** What the customer agreed to pay (the whole workshop, or one session) and its currency: typed by the employee. */
+    price: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => parseMoney(v)),
+    currency: z.string().trim().regex(/^[A-Za-z]{3}$/),
+    /** Paid in full, or a deposit (then the rest is reminded on remindOn). */
+    paymentMode: z.enum(["full", "deposit"]).optional().default("full"),
+    remindOn: isoDate,
+    discountType: z.enum(["none", "fixed", "percent"]).optional().default("none"),
     discountValue: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => parseMoney(v)),
     discountReason: text(300),
     note: text(1000),
@@ -51,14 +57,19 @@ export function buildBookingSchema(m: BookingMessages) {
     paidNow: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (isZero(v) ? 0 : parseMoney(v))),
   }).superRefine((d, ctx) => {
     if (d.kind === "session" && !d.sessionDate) ctx.addIssue({ code: "custom", path: ["sessionDate"], message: m.discount });
-    if (d.paidNow == null && m.paidRequired) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.paidRequired });
-    if (d.paidNow != null && Number.isNaN(d.paidNow)) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.money });
+    if (d.price == null || Number.isNaN(d.price)) ctx.addIssue({ code: "custom", path: ["price"], message: m.money });
+    if (d.paymentMode === "deposit") {
+      if (!d.remindOn) ctx.addIssue({ code: "custom", path: ["remindOn"], message: m.reminder ?? "booking.invalid_reminder" });
+      if (d.paidNow == null) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.paidRequired ?? m.money });
+      else if (Number.isNaN(d.paidNow) || d.paidNow <= 0) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.money });
+      else if (d.price != null && !Number.isNaN(d.price) && d.paidNow >= d.price) ctx.addIssue({ code: "custom", path: ["paidNow"], message: m.depositLess ?? "booking.deposit_invalid" });
+    }
     if (d.discountType === "none") return;
     if (d.discountValue == null || Number.isNaN(d.discountValue) || (d.discountType === "percent" && d.discountValue > 100)) ctx.addIssue({ code: "custom", path: ["discountValue"], message: m.discount });
     if (!d.discountReason || d.discountReason.length < 3) ctx.addIssue({ code: "custom", path: ["discountReason"], message: m.reason });
   });
 }
-export const bookingSchema = buildBookingSchema({ discount: "booking.invalid_discount", reason: "booking.discount_reason_required", money: "payment.invalid_amount" });
+export const bookingSchema = buildBookingSchema({ discount: "booking.invalid_discount", reason: "booking.discount_reason_required", money: "payment.invalid_amount", reminder: "booking.invalid_reminder", depositLess: "booking.deposit_invalid" });
 export type BookingInput = z.input<typeof bookingSchema>;
 
 export function buildBookingPaymentSchema(m: { amount: string }) {

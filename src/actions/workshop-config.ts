@@ -42,7 +42,6 @@ export async function saveWorkshopGroup(input: WorkshopGroupInput): Promise<Acti
     check(await supabase.rpc("set_workshop_group", {
       p_group_id: (d.id ?? null) as unknown as string, p_offering_id: d.offeringId, p_name: d.name, p_sessions: d.sessions,
       p_capacity: (d.capacity ?? null) as unknown as number, p_attendance: (d.attendance ?? null) as unknown as string, p_active: d.isActive,
-      p_group_price: (d.groupPrice ?? null) as unknown as number, p_group_currency: (d.groupCurrency ?? null) as unknown as string,
     }));
     revalidatePath(`/admin/offerings/${d.offeringId}`);
     return null;

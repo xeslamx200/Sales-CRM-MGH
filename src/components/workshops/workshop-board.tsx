@@ -15,7 +15,7 @@ import { fmt } from "@/i18n";
 import { formatNumber } from "@/lib/format.ts";
 import { cn } from "@/lib/utils";
 
-export type WorkshopItem = { id: string; name: string; kind: "course" | "workshop" | "service"; isActive: boolean; groups: number; prices: number };
+export type WorkshopItem = { id: string; name: string; kind: "course" | "workshop" | "service"; isActive: boolean; groups: number };
 type View = "cards" | "list" | "compact";
 type Sort = "manual" | "name" | "groups";
 const PREFS = "crm.workshops.prefs";
@@ -83,7 +83,7 @@ export function WorkshopBoard({ items, companyId, canArrange }: { items: Worksho
   const num = (n: number) => formatNumber(n, locale);
   const meta = (i: WorkshopItem) => (
     <span className="text-sm text-muted-foreground">
-      {b.wkGroups}: <b className="ltr-nums text-foreground">{num(i.groups)}</b> · {b.wkPrices}: <b className="ltr-nums text-foreground">{num(i.prices)}</b>
+      {b.wkGroups}: <b className="ltr-nums text-foreground">{num(i.groups)}</b>
     </span>
   );
   const kindLabel = (k: WorkshopItem["kind"]) => t.enums.offeringKind[k];
@@ -202,7 +202,7 @@ export function WorkshopBoard({ items, companyId, canArrange }: { items: Worksho
             <Link key={o.id} href={`/workshops/${o.id}`} prefetch={false} title={o.name}
               className={cn("flex min-w-0 items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm hover:border-primary/40", !o.isActive && "opacity-60")}>
               <span className="min-w-0 flex-1 truncate" dir="auto">{o.name}</span>
-              <span className="ltr-nums shrink-0 text-xs text-muted-foreground">{num(o.groups)}/{num(o.prices)}</span>
+              <span className="ltr-nums shrink-0 text-xs text-muted-foreground">{num(o.groups)}</span>
             </Link>
           ))}
         </div>

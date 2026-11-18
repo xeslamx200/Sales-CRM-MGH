@@ -11,7 +11,7 @@ import { ActivityDialog, TaskDialog } from "@/components/crm/record-actions";
 import { getViewer, isManagerOf } from "@/server/auth/viewer";
 import { createClient } from "@/server/supabase/server";
 import { listMembers, peopleOptions } from "@/server/data/members";
-import { formatDateTime } from "@/lib/format.ts";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format.ts";
 
 export default async function ContactPage({ params }: PageProps<"/contacts/[id]">) {
   const { id } = await params;
@@ -29,6 +29,18 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
     supabase.from("leads").select("id, company_id, title, status, created_at").eq("contact_id", id).order("created_at", { ascending: false }),
     supabase.from("conversations").select("id, company_id, status, last_message_at, unread_count, account:whatsapp_accounts!conversations_whatsapp_account_id_fkey(display_name)").eq("contact_id", id),
   ]);
+  // every booking this customer has (RLS shows what the viewer may see), with the workshop and group names
+  const bookings = await supabase.from("workshop_bookings")
+    .select("id, company_id, offering_id, group_id, booking_kind, session_date, final_price, currency, status, payment_mode, remind_on, created_at")
+    .eq("contact_id", id).order("created_at", { ascending: false });
+  const bks = bookings.data ?? [];
+  const [bkOfferings, bkGroups] = await Promise.all([
+    bks.length ? supabase.from("company_offerings").select("id, name").in("id", [...new Set(bks.map((x) => x.offering_id))]) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    bks.length ? supabase.from("workshop_groups").select("id, name").in("id", [...new Set(bks.map((x) => x.group_id))]) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+  const offeringName = new Map((bkOfferings.data ?? []).map((o) => [o.id, o.name]));
+  const groupName = new Map((bkGroups.data ?? []).map((g) => [g.id, g.name]));
+  const bt = t.bookings;
   const companyIds = [...new Set((links.data ?? []).map((l) => l.company_id))];
   const members = await listMembers(supabase, companyIds, { activeOnly: true });
   const companyName = new Map(viewer.companies.map((c) => [c.id, c.name]));
@@ -69,6 +81,29 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
                     <span className="flex items-center gap-2 text-xs text-muted-foreground">
                       {companyName.get(l.company_id)}
                       <StatusBadge tone={toneFor(l.status)}>{t.enums.leadStatus[l.status]}</StatusBadge>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title={t.contacts.bookingsTitle}>
+            {bks.length === 0 ? <p className="text-sm text-muted-foreground">{t.common.noResults}</p> : (
+              <ul className="divide-y text-sm" data-testid="contact-bookings">
+                {bks.map((k) => (
+                  <li key={k.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span className="min-w-0">
+                      <Link href={`/bookings/${k.id}`} className="text-primary hover:underline">{offeringName.get(k.offering_id) ?? "—"} · {groupName.get(k.group_id) ?? "—"}</Link>
+                      <span className="block text-xs text-muted-foreground">
+                        {k.booking_kind === "session" ? `${bt.kindSession}${k.session_date ? ` · ${formatDate(k.session_date, "UTC", locale)}` : ""}` : bt.kindFull}
+                        {" · "}{k.payment_mode === "deposit" ? bt.payDeposit : bt.payFull}
+                        {k.payment_mode === "deposit" && k.remind_on ? ` · ${bt.remindLabel}: ${formatDate(k.remind_on, "UTC", locale)}` : ""}
+                        {" · "}{formatDate(k.created_at, tzOf(k.company_id), locale)}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2 text-xs">
+                      <span className="ltr-nums font-medium">{formatCurrency(Number(k.final_price), k.currency, locale)}</span>
+                      <StatusBadge tone={toneFor(k.status)}>{bt.bookingStatus[k.status as keyof typeof bt.bookingStatus] ?? k.status}</StatusBadge>
                     </span>
                   </li>
                 ))}

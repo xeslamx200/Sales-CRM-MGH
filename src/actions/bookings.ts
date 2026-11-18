@@ -16,26 +16,22 @@ import { z } from "zod";
 // Every rule (price lookup and freezing, discount policy and approval, capacity, duplicates, overpayment, who may do what) is enforced by the database
 // functions of migrations 985 / 986. These actions validate the shape, call them with the user's own session, and translate errors.
 
-export type GroupOption = { id: string; name: string; sessions: string[]; capacity: number | null; booked: number; attendance: "online" | "offline" | null; groupPrice: number | null; groupCurrency: string | null };
-export type PriceOption = { country: string; attendance: "online" | "offline"; currency: string; price: number; sessionPrice: number | null };
+export type GroupOption = { id: string; name: string; sessions: string[]; capacity: number | null; booked: number; attendance: "online" | "offline" | null };
 export type ExistingBooking = { id: string; kind: "full" | "session"; sessionDate: string | null; status: string; finalPrice: number; currency: string; createdAt: string; owner: string | null };
 
-/** Active groups (with seats taken) and active prices of one workshop, for the booking form. */
-export async function workshopOptions(input: z.input<typeof workshopOptionsSchema>): Promise<ActionResult<{ groups: GroupOption[]; prices: PriceOption[] }>> {
+/** Active groups (with seats taken) of one workshop, for the booking form. The price is typed by the employee, not read from a table. */
+export async function workshopOptions(input: z.input<typeof workshopOptionsSchema>): Promise<ActionResult<{ groups: GroupOption[] }>> {
   return runAction(workshopOptionsSchema, input, async ({ offeringId }) => {
     const supabase = await createClient();
-    const [groups, stats, prices] = await Promise.all([
-      supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active, group_price, group_currency").eq("offering_id", offeringId).eq("is_active", true).order("starts_on"),
+    const [groups, stats] = await Promise.all([
+      supabase.from("workshop_groups").select("id, name, sessions, capacity, attendance, is_active").eq("offering_id", offeringId).eq("is_active", true).order("starts_on"),
       supabase.rpc("workshop_group_stats", { p_offering_id: offeringId }),
-      supabase.from("workshop_prices").select("country, attendance, currency, price, session_price").eq("offering_id", offeringId).eq("is_active", true).order("country"),
     ]);
     if (groups.error) throw groups.error;
     if (stats.error) throw stats.error;
-    if (prices.error) throw prices.error;
     const booked = new Map((stats.data ?? []).map((s) => [s.group_id, Number(s.booked)]));
     return {
-      groups: (groups.data ?? []).map((g) => ({ id: g.id, name: g.name, sessions: g.sessions, capacity: g.capacity, booked: booked.get(g.id) ?? 0, attendance: g.attendance as GroupOption["attendance"], groupPrice: g.group_price == null ? null : Number(g.group_price), groupCurrency: g.group_currency })),
-      prices: (prices.data ?? []).map((p) => ({ country: p.country, attendance: p.attendance as PriceOption["attendance"], currency: p.currency, price: Number(p.price), sessionPrice: p.session_price == null ? null : Number(p.session_price) })),
+      groups: (groups.data ?? []).map((g) => ({ id: g.id, name: g.name, sessions: g.sessions, capacity: g.capacity, booked: booked.get(g.id) ?? 0, attendance: g.attendance as GroupOption["attendance"] })),
     };
   });
 }
@@ -58,7 +54,9 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
     await requirePermission(grp?.company_id, "create_bookings");
     const id = must(await supabase.rpc("create_workshop_booking", {
       p_contact_id: d.contactId, p_group_id: d.groupId, p_country: d.country, p_attendance: d.attendance,
-      p_booked_on: d.bookedOn ?? undefined, p_booked_by: d.bookedBy ?? undefined, p_kind: d.kind, p_session_date: d.kind === "session" ? d.sessionDate ?? undefined : undefined, p_confirm_repeat: d.confirmRepeat === true, p_discount_type: d.discountType, p_discount_value: d.discountValue ?? 0, p_discount_reason: d.discountReason ?? undefined, p_note: d.note ?? undefined,
+      p_booked_on: d.bookedOn ?? undefined, p_booked_by: d.bookedBy ?? undefined, p_kind: d.kind, p_session_date: d.kind === "session" ? d.sessionDate ?? undefined : undefined, p_confirm_repeat: d.confirmRepeat === true,
+      p_price: d.price as number, p_currency: d.currency.toUpperCase(), p_payment_mode: d.paymentMode, p_remind_on: d.paymentMode === "deposit" ? d.remindOn ?? undefined : undefined,
+      p_note: d.note ?? undefined,
     }));
     revalidatePath("/bookings");
     // optional first payment: a separate, checked call (the booking exists either way; a refused payment is reported, never hidden)
@@ -67,11 +65,13 @@ export async function createBooking(input: BookingInput): Promise<ActionResult<{
     // a booking made by anybody but a company admin waits for approval (migration 1012): no payment can be recorded until a company admin approves it
     const created = await supabase.from("workshop_bookings").select("status").eq("id", id).maybeSingle();
     const awaitingApproval = created.data?.status === "pending_approval";
-    if (d.paidNow != null && d.paidNow > 0) {
+    // paid in full = the whole typed price is recorded as the payment; a deposit = the amount typed beside it
+    const toPay = d.paymentMode === "full" ? (d.price as number) : d.paidNow;
+    if (toPay != null && toPay > 0) {
       try {
         await limitUser(supabase, "payment");
         await currentRates();   // a payment in a foreign currency needs a rate younger than 48 h: refresh it first (only when older than 6 h)
-        paymentId = must(await supabase.rpc("record_booking_payment", { p_booking_id: id, p_amount: d.paidNow }));
+        paymentId = must(await supabase.rpc("record_booking_payment", { p_booking_id: id, p_amount: toPay }));
         revalidatePath("/payments"); revalidatePath("/customer-payments");
       } catch (err) {
         paymentError = userMessage(errorKey(err), await requestLocale());
