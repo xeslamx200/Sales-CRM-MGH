@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Check, Pencil, Percent, Plus, X } from "lucide-react";
+import { Ban, Check, Pencil, UserCog, Percent, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,8 +12,8 @@ import { FormError, SelectField, SubmitButton, TextareaField, TextField } from "
 import { useActionForm } from "@/components/form/use-action-form";
 import { ConfirmDialog, FormDialog } from "@/components/app/dialogs";
 import { useI18n } from "@/components/i18n-provider";
-import { approveBooking, approveDiscount, cancelBooking, editBooking, editPayment, recordBookingPayment, rejectDiscount, requestDiscount } from "@/actions/bookings";
-import { buildBookingPaymentSchema, buildDiscountRequestSchema, buildEditBookingSchema, buildEditPaymentSchema } from "@/schemas/bookings";
+import { approveBooking, approveDiscount, cancelBooking, editBooking, editPayment, reassignBooking, recordBookingPayment, rejectDiscount, requestDiscount } from "@/actions/bookings";
+import { buildBookingPaymentSchema, buildDiscountRequestSchema, buildEditBookingSchema, buildEditPaymentSchema, buildReassignBookingSchema } from "@/schemas/bookings";
 import { SingleDateField } from "@/components/form/multi-date-field";
 import { formatDate } from "@/lib/format.ts";
 import { WORKSHOP_CURRENCIES } from "@/lib/workshop-config.ts";
@@ -292,6 +292,40 @@ function EditPaymentForm({ bookingId, paymentId, amount, currency, onDone }: { b
         <FormError message={form.formState.errors.root?.message} />
         <p className="text-xs text-muted-foreground">{t.bookings.currencyOfBooking}: <b>{currency}</b></p>
         <TextField control={form.control} name="amount" label={`${t.bookings.amount} (${currency})`} inputMode="decimal" dir="ltr" />
+        <TextareaField control={form.control} name="reason" label={t.bookings.editReason} description={t.bookings.editReasonHint} rows={2} />
+        <DialogFooter><SubmitButton pending={pending}>{t.common.save}</SubmitButton></DialogFooter>
+      </FieldGroup>
+    </form>
+  );
+}
+
+/** Admin: move the booking (and its payments) to another employee of the company, so the sale is credited to her (a reason is mandatory). */
+export function ReassignBookingDialog({ bookingId, currentOwnerId, options }: { bookingId: string; currentOwnerId: string; options: { id: string; name: string }[] }) {
+  const { t } = useI18n();
+  return (
+    <FormDialog trigger={<Button size="sm" variant="outline" data-testid="reassign-booking"><UserCog />{t.bookings.reassign}</Button>} title={t.bookings.reassign} description={t.bookings.reassignHint}>
+      {(close) => <ReassignBookingForm bookingId={bookingId} currentOwnerId={currentOwnerId} options={options} onDone={close} />}
+    </FormDialog>
+  );
+}
+
+function ReassignBookingForm({ bookingId, currentOwnerId, options, onDone }: { bookingId: string; currentOwnerId: string; options: { id: string; name: string }[]; onDone: () => void }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const schema = useMemo(() => buildReassignBookingSchema({ owner: t.bookings.reassignPick, reason: t.bookings.editReasonRequired }), [t]);
+  const choices = options.filter((o) => o.id !== currentOwnerId);
+  const { form, submit, pending } = useActionForm({
+    schema,
+    defaultValues: { bookingId, newOwner: "", reason: "" },
+    action: reassignBooking,
+    successMessage: t.bookings.reassignSaved,
+    onSuccess: () => { onDone(); router.refresh(); },
+  });
+  return (
+    <form onSubmit={submit} noValidate>
+      <FieldGroup>
+        <FormError message={form.formState.errors.root?.message} />
+        <SelectField control={form.control} name="newOwner" label={t.bookings.reassignTo} placeholder={t.bookings.reassignPick} options={choices.map((o) => ({ value: o.id, label: o.name }))} />
         <TextareaField control={form.control} name="reason" label={t.bookings.editReason} description={t.bookings.editReasonHint} rows={2} />
         <DialogFooter><SubmitButton pending={pending}>{t.common.save}</SubmitButton></DialogFooter>
       </FieldGroup>

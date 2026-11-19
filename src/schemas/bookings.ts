@@ -153,3 +153,14 @@ export function buildEditPaymentSchema(m: { amount: string; reason: string }) {
 }
 export const editPaymentSchema = buildEditPaymentSchema({ amount: "payment.invalid_amount", reason: "booking.edit_reason_required" });
 export type EditPaymentInput = z.input<typeof editPaymentSchema>;
+
+/** An admin moves a booking (and its payments) to another employee of the company. */
+export function buildReassignBookingSchema(m: { owner: string; reason: string }) {
+  return z.object({
+    bookingId: z.uuid(),
+    newOwner: z.uuid(m.owner),
+    reason: z.string().trim().min(3, m.reason).max(300, m.reason),
+  });
+}
+export const reassignBookingSchema = buildReassignBookingSchema({ owner: "booking.owner_not_allowed", reason: "booking.edit_reason_required" });
+export type ReassignBookingInput = z.input<typeof reassignBookingSchema>;

@@ -144,7 +144,7 @@ const MESSAGES: Record<string, { ar: string; en: string }> = {
   "booking.discount_reason_required": { ar: "اكتب سبب الخصم (3 أحرف على الأقل).", en: "Write the discount reason (at least 3 characters)." },
   "booking.awaiting_approval": { ar: "هذا الحجز بانتظار اعتماد مسؤول الشركة. لا يمكن تسجيل دفعة قبل اعتماده.", en: "This booking is waiting for a company admin to approve it. A payment cannot be recorded before that." },
   "booking.invalid_date": { ar: "تاريخ الحجز غير مقبول: لا يكون في المستقبل ولا أقدم من 90 يومًا.", en: "That booking date is not accepted: not in the future and at most 90 days back." },
-  "booking.owner_not_allowed": { ar: "لا يمكنك تسجيل حجز باسم هذا الموظف.", en: "You cannot book on behalf of this employee." },
+  "booking.owner_not_allowed": { ar: "لا يمكن نسب الحجز لهذا الموظف.", en: "The booking cannot be credited to this employee." },
   "payment.booking_awaiting_approval": { ar: "اعتمد الحجز أولًا، ثم اعتمد الدفعة.", en: "Approve the booking first, then approve the payment." },
   "booking.repeat_unconfirmed": { ar: "هذا العميل لديه حجز في نفس المجموعة. أكّد أنك تريد تسجيل حجز آخر له.", en: "This customer already has a booking in this group. Confirm that you want to record another one." },
   "booking.invalid_session": { ar: "اختر سيشن من مواعيد هذه المجموعة.", en: "Pick one of the sessions of this group." },

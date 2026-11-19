@@ -1630,6 +1630,12 @@ isOneToOne: false
 "booking_existing_for":
 { Args: { "p_contact_id": string,"p_group_id": string }; Returns: { booking_id: string; booking_kind: string; session_date: string | null; status: string; final_price: number; currency: string; created_at: string; owner_name: string | null }[]
                            },
+"reassign_booking_owner":
+{ Args: { "p_booking_id": string,"p_new_owner": string,"p_reason": string }; Returns: undefined
+                           },
+"booking_reassign_options":
+{ Args: { "p_company_id": string }; Returns: { user_id: string; full_name: string }[]
+                           },
 "booking_owner_options":
 { Args: { "p_company_id": string }; Returns: { user_id: string; full_name: string }[]
                            },

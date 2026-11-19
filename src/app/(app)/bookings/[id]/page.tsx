@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, Section } from "@/components/app/page-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { DiscBadge, PayBadge } from "@/components/bookings/bookings-table";
-import { ApproveBookingDialog, ApproveDiscountDialog, CancelBookingDialog, RejectBookingDialog, RecordPaymentDialog, RejectDiscountDialog, RequestDiscountDialog, EditBookingDialog, EditPaymentDialog } from "@/components/bookings/booking-actions";
+import { ApproveBookingDialog, ApproveDiscountDialog, CancelBookingDialog, RejectBookingDialog, RecordPaymentDialog, RejectDiscountDialog, RequestDiscountDialog, EditBookingDialog, EditPaymentDialog, ReassignBookingDialog } from "@/components/bookings/booking-actions";
 import { FileText, ImageIcon } from "lucide-react";
 import { AddProofButton } from "@/components/bookings/proof-field";
 import { getViewer, isAdminOf } from "@/server/auth/viewer";
@@ -28,15 +28,17 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
   const detail = await supabase.rpc("booking_detail", { p_booking_id: id });
   if (detail.error || !detail.data?.[0]) notFound();
   const r = detail.data[0];
-  const { data: own } = await supabase.from("workshop_bookings").select("company_id, booking_kind, session_date, payment_mode, remind_on").eq("id", id).maybeSingle();
+  const { data: own } = await supabase.from("workshop_bookings").select("company_id, created_by, booking_kind, session_date, payment_mode, remind_on").eq("id", id).maybeSingle();
   const companyId = own?.company_id;
   const tz = viewer.companies.find((c) => c.id === companyId)?.timezone ?? "UTC";
-  const mayEdit = viewer.isSuperAdmin;   // only the super admin corrects prices and payments (the database checks it again)
-  const [pays, reqs, edits] = await Promise.all([
+  const mayEdit = viewer.isSuperAdmin || isAdminOf(viewer, companyId);   // the super admin and the company's admins correct prices, payments and the owner (the database checks it again)
+  const [pays, reqs, edits, owners] = await Promise.all([
     supabase.rpc("booking_payments", { p_booking_id: id }),
     companyId ? supabase.rpc("discount_requests_list", { p_company_id: companyId }) : Promise.resolve({ data: [], error: null }),
-    mayEdit || isAdminOf(viewer, companyId) ? supabase.rpc("booking_edit_history", { p_booking_id: id }) : Promise.resolve({ data: [], error: null }),
+    mayEdit ? supabase.rpc("booking_edit_history", { p_booking_id: id }) : Promise.resolve({ data: [], error: null }),
+    mayEdit && companyId ? supabase.rpc("booking_reassign_options", { p_company_id: companyId }) : Promise.resolve({ data: [], error: null }),
   ]);
+  const ownerOptions = (owners.data ?? []).map((o) => ({ id: o.user_id, name: o.full_name }));
   if (pays.error) throw pays.error;
   const payIds = (pays.data ?? []).map((p) => p.payment_id);
   const editablePayments = (pays.data ?? []).filter((p) => p.status !== "rejected").map((p) => ({ id: p.payment_id, amount: Number(p.amount), status: p.status, paidOn: p.paid_on }));
@@ -99,6 +101,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
             <div className="mt-3 flex flex-wrap gap-2">
               {remainingToPay > 0 && <RecordPaymentDialog bookingId={id} currency={cur} today={today} />}
               <CancelBookingDialog bookingId={id} />
+              {mayEdit && own?.created_by && <ReassignBookingDialog bookingId={id} currentOwnerId={own.created_by} options={ownerOptions} />}
               {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} payments={editablePayments} />}
             </div>
           )}
@@ -108,7 +111,8 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
               <div className="flex flex-wrap gap-2">
                 {mayApprove && <ApproveBookingDialog bookingId={id} />}
                 <RejectBookingDialog bookingId={id} />
-                {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} payments={editablePayments} />}
+                {mayEdit && own?.created_by && <ReassignBookingDialog bookingId={id} currentOwnerId={own.created_by} options={ownerOptions} />}
+              {mayEdit && <EditBookingDialog bookingId={id} price={Number(r.list_price)} currency={cur} paymentMode={own?.payment_mode === "deposit" ? "deposit" : "full"} remindOn={own?.remind_on ?? ""} currencyLocked={hasMoney} payments={editablePayments} />}
               </div>
             </div>
           )}
@@ -194,6 +198,7 @@ export default async function BookingPage({ params }: PageProps<"/bookings/[id]"
                       {o.payment_mode !== n.payment_mode || o.remind_on !== n.remind_on
                         ? ` · ${o.payment_mode === "deposit" ? b.payDeposit : b.payFull}${o.remind_on ? ` (${formatDate(String(o.remind_on), "UTC", locale)})` : ""} → ${n.payment_mode === "deposit" ? b.payDeposit : b.payFull}${n.remind_on ? ` (${formatDate(String(n.remind_on), "UTC", locale)})` : ""}`
                         : ""}
+                      {o.credited_to !== undefined && o.credited_to !== n.credited_to && ` · ${b.creditedTo}: ${o.credited_to ?? "—"} → ${n.credited_to ?? "—"}`}
                     </span>
                   ) : (
                     <span>

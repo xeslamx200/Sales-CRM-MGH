@@ -21,9 +21,10 @@ select tests.login('admin_a');
 update r set b = public.create_workshop_booking(p_contact_id := tests.ref('e1'), p_group_id := tests.ref('eg1'), p_country := 'EG', p_attendance := 'online', p_price := 1000, p_currency := 'EGP');
 update r set p = public.record_booking_payment((select b from r), 400);
 
--- only a super admin edits
-select tests.throws($q$select public.edit_workshop_booking((select b from r), 1200, 'EGP', 'full', null, 'price agreed again')$q$, 'auth.forbidden', 'a company admin cannot edit a booking');
-select tests.throws($q$select public.edit_payment_amount((select p from r), 450, 'typo')$q$, 'auth.forbidden', 'a company admin cannot edit a payment');
+-- only a super admin or the company's admin edits (migration 1023); the admin of another company and employees cannot
+select tests.login('admin_b');
+select tests.throws($q$select public.edit_workshop_booking((select b from r), 1200, 'EGP', 'full', null, 'price agreed again')$q$, 'auth.forbidden', 'the admin of another company cannot edit a booking');
+select tests.throws($q$select public.edit_payment_amount((select p from r), 450, 'typo')$q$, 'auth.forbidden', 'the admin of another company cannot edit a payment');
 select tests.login('agent_a1');
 select tests.throws($q$select public.edit_workshop_booking((select b from r), 1200, 'EGP', 'full', null, 'price agreed again')$q$, 'auth.forbidden', 'an employee cannot edit a booking');
 

@@ -7,7 +7,7 @@ import { requirePermission } from "@/server/auth/permissions";
 import { limitUser } from "@/server/rate-limit";
 import { requestLocale } from "@/server/i18n";
 import { errorKey, userMessage } from "@/lib/errors.ts";
-import {
+import { reassignBookingSchema, type ReassignBookingInput,
   approveDiscountSchema, bookingPaymentSchema, bookingSchema, cancelBookingSchema, discountRequestSchema, editBookingSchema, editPaymentSchema, rejectDiscountSchema, workshopOptionsSchema,
   type ApproveDiscountInput, type BookingInput, type BookingPaymentInput, type CancelBookingInput, type DiscountRequestInput, type EditBookingInput, type EditPaymentInput, type RejectDiscountInput,
 } from "@/schemas/bookings";
@@ -178,6 +178,16 @@ export async function editPayment(input: EditPaymentInput): Promise<ActionResult
     const supabase = await createClient();
     check(await supabase.rpc("edit_payment_amount", { p_payment_id: d.paymentId, p_amount: d.amount, p_reason: d.reason }));
     revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/bookings"); revalidatePath("/customer-payments"); revalidatePath("/payments"); revalidatePath("/");
+    return null;
+  });
+}
+
+/** A super admin or the company's admin moves a booking (and its payments) to another employee, with a reason; the database checks who and keeps the history. */
+export async function reassignBooking(input: ReassignBookingInput): Promise<ActionResult<null>> {
+  return runAction(reassignBookingSchema, input, async (d) => {
+    const supabase = await createClient();
+    check(await supabase.rpc("reassign_booking_owner", { p_booking_id: d.bookingId, p_new_owner: d.newOwner, p_reason: d.reason }));
+    revalidatePath(`/bookings/${d.bookingId}`); revalidatePath("/bookings"); revalidatePath("/customer-payments"); revalidatePath("/payments"); revalidatePath("/performance"); revalidatePath("/");
     return null;
   });
 }
